@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+python-dotenv
+
+langchain
+langchain-community
+langchain-openai
+langchain-postgres
+langchain-text-splitters
+langchain-huggingface
+
+psycopg[binary]
+pgvector
+
+sentence-transformers
+pypdf
