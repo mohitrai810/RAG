@@ -2,7 +2,7 @@
 
 A production-oriented Retrieval-Augmented Generation (RAG) system built from scratch to understand and implement reliable document ingestion, semantic search, vector retrieval, and grounded LLM generation.
 
-This project is being developed incrementally with a strong focus on **production backend engineering, retrieval quality, observability, and understanding the systems behind RAG** rather than building a basic "chat with PDF" demo.
+This project is being developed incrementally with a strong focus on **production backend engineering, retrieval quality, observability, and understanding the systems behind RAG rather than building a basic "chat with PDF" demo.
 
 ---
 
