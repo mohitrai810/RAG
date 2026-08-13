@@ -1,5 +1,8 @@
-from app.core.health import check_database
-from app.ingestion.service import ingest
+from app.core.database import Base, engine
+from app.models import Chunk, Document
+
 
 if __name__ == "__main__":
-    ingest("data/documents/test.md")
+    Base.metadata.create_all(bind=engine)
+
+    print("Database tables created successfully.")
