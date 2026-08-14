@@ -8,7 +8,7 @@ This project is intentionally built incrementally with a strong focus on **produ
 
 ## Project Status
 
- **Currently under active development**
+**Currently under active development**
 
 ### Implemented
 
@@ -24,14 +24,16 @@ This project is intentionally built incrementally with a strong focus on **produ
 - [x] Configurable embedding dimensions
 - [x] Embedding provider abstraction
 - [x] BGE embedding provider
+- [x] BGE model integration
+- [x] BGE embedding generation
 - [x] Markdown document loading
 - [x] Text chunking
-- [x] `vector(768)` storage in PostgreSQL
+- [x] Chunk metadata enrichment
+- [x] `vector(768)` storage model in PostgreSQL
 
 ### In Progress
 
-- [ ] Download and integrate BGE embeddings
-- [ ] Persist real document embeddings
+- [ ] Persist generated document embeddings to PostgreSQL
 - [ ] Semantic similarity retrieval
 - [ ] Retrieval service
 - [ ] Metadata filtering
@@ -81,21 +83,16 @@ The system is being developed step-by-step so that each major component is under
 
 ---
 
-# Architecture
+# Current Working Pipeline
 
-## Target Architecture
+The ingestion pipeline currently supports:
 
 ```text
-                         DOCUMENTS
+                         DOCUMENT
                              │
                              ▼
                   ┌─────────────────────┐
                   │   Document Loader   │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │   Normalization     │
                   └──────────┬──────────┘
                              │
                              ▼
@@ -110,40 +107,10 @@ The system is being developed step-by-step so that each major component is under
                              │
                              ▼
                   ┌─────────────────────┐
-                  │     Embeddings      │
+                  │   BGE Embeddings    │
+                  │      768-dim        │
                   └──────────┬──────────┘
                              │
                              ▼
-              ┌──────────────────────────────┐
-              │      PostgreSQL + PGVector   │
-              │                              │
-              │        vector(768)           │
-              └──────────────┬───────────────┘
-                             │
-                        USER QUERY
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │  Query Processing   │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │     Retrieval       │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │   Context Builder   │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │        LLM          │
-                  │     OpenRouter      │
-                  └──────────┬──────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │  Answer + Sources   │
-                  └─────────────────────┘
+                     DATABASE STORAGE
+                       (Next Step)
