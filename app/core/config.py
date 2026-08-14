@@ -4,8 +4,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+
     database_url: str
+
+    openrouter_api_key: str
+
     embedding_model: str = "BAAI/bge-base-en-v1.5"
+
     embedding_dimensions: int = 768
 
     model_config = SettingsConfigDict(
