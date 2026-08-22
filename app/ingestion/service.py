@@ -18,7 +18,11 @@ from app.ingestion.metadata import (
 from app.models import Chunk, Document
 
 
-def ingest(file_path: str, tenant_id: UUID):
+def ingest(
+    file_path: str,
+    tenant_id: UUID,
+    embedding_provider: BGEEmbeddingProvider,
+):
     path = Path(file_path)
 
     document_hash = hash_file(file_path)
