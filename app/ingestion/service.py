@@ -18,8 +18,23 @@ from app.ingestion.metadata import (
 from app.models import Chunk, Document
 
 
-def ingest(file_path: str):
+def ingest(file_path: str, tenant_id: UUID):
     path = Path(file_path)
+
+    document_hash = hash_file(file_path)
+    mime_type, _ = guess_type(path.name)
+
+    with SessionLocal() as session:
+        existing_document = session.scalar(
+            select(Document).where(
+                Document.tenant_id == tenant_id,
+                Document.content_hash == document_hash,
+            )
+        )
+
+        if existing_document:
+            print(f"Document already exists: {existing_document.id}")
+            return existing_document.id
 
     documents = load_document(file_path)
 
@@ -35,28 +50,18 @@ def ingest(file_path: str):
     )
 
     settings = get_settings()
-    embedding_provider = BGEEmbeddingProvider(settings.embedding_model)
+    embedding_provider = BGEEmbeddingProvider(
+        settings.embedding_model
+    )
 
     embeddings = embedding_provider.embed_documents(
         [chunk.page_content for chunk in chunks]
     )
 
-    document_hash = hash_file(file_path)
-    mime_type, _ = guess_type(path.name)
-
     with SessionLocal() as session:
-        existing_document = session.scalar(
-            select(Document).where(
-                Document.content_hash == document_hash
-            )
-        )
-
-        if existing_document:
-            print(f"Document already exists: {existing_document.id}")
-            return existing_document.id
-
         document = Document(
             id=UUID(document_id),
+            tenant_id=tenant_id,
             source=path.name,
             content_hash=document_hash,
             mime_type=mime_type,
@@ -88,5 +93,6 @@ def ingest(file_path: str):
     print(f"Generated embeddings: {len(embeddings)}")
     print(f"Embedding dimensions: {embedding_provider.dimensions}")
     print(f"Stored document: {document_id}")
+    print(f"Tenant ID: {tenant_id}")
 
     return UUID(document_id)

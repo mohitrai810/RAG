@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.context.builder import ContextBuilder
 from app.generation.service import GenerationService
 from app.retrieval.service import RetrievalService
@@ -18,12 +20,14 @@ class RAGService:
     def ask(
         self,
         query: str,
+        tenant_id: UUID,
         top_k: int = 3,
         max_distance: float = 0.50,
     ) -> str:
 
         results = self.retrieval_service.search(
             query=query,
+            tenant_id=tenant_id,
             top_k=top_k,
             max_distance=max_distance,
         )
