@@ -1,5 +1,5 @@
 from functools import lru_cache
-
+from app.reranking.cross_encoder import CrossEncoderReranker
 from app.context.builder import ContextBuilder
 from app.core.config import get_settings
 from app.embeddings.bge import BGEEmbeddingProvider
@@ -47,6 +47,11 @@ def get_generation_service() -> GenerationService:
 def get_rag_service() -> RAGService:
     return RAGService(
         retrieval_service=get_retrieval_service(),
+        reranker=get_reranker(),
         context_builder=get_context_builder(),
         generation_service=get_generation_service(),
     )
+
+@lru_cache
+def get_reranker():
+    return CrossEncoderReranker()

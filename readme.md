@@ -2,9 +2,9 @@
 
 A modular Retrieval-Augmented Generation (RAG) backend built from first principles to understand and implement the systems behind modern AI retrieval pipelines.
 
-The project intentionally avoids hiding the complete workflow behind a single high-level RAG abstraction. Core components such as ingestion, chunking, embeddings, vector retrieval, tenant isolation, context construction, and generation are implemented as separate services.
+The project intentionally avoids hiding the workflow behind a single high-level RAG abstraction. Ingestion, chunking, embeddings, vector retrieval, tenant isolation, reranking, context construction, generation, and API transport are implemented as separate services.
 
-The goal is to evolve this repository from a working RAG engine into a production-oriented multi-tenant AI backend.
+The current system supports a two-stage retrieval pipeline using **BGE + PGVector for candidate retrieval** and a **CrossEncoder for reranking**, exposed through a lightweight FastAPI layer.
 
 ---
 
@@ -22,22 +22,23 @@ LLM
 Answer
 ```
 
-That is useful for prototyping, but production systems need significantly more structure.
+That is useful for prototyping, but production-oriented RAG systems need much more structure.
 
 This project focuses on understanding and implementing:
 
-* document lifecycle and persistence
-* chunking and metadata
-* embedding generation
-* PostgreSQL + PGVector storage
-* semantic vector retrieval
-* similarity filtering
-* tenant-aware data isolation
-* document deduplication
-* service boundaries
-* provider abstractions
-* grounded LLM generation
-* extensibility toward reranking, APIs, evaluation, and observability
+- document lifecycle and persistence
+- chunking and metadata
+- embedding generation
+- PostgreSQL + PGVector storage
+- semantic vector retrieval
+- tenant-aware data isolation
+- document deduplication
+- two-stage retrieval and reranking
+- service boundaries and provider abstractions
+- grounded LLM generation
+- FastAPI transport
+- measurable retrieval quality
+- extensibility toward evaluation, citations, authentication, and observability
 
 ---
 
@@ -46,105 +47,113 @@ This project focuses on understanding and implementing:
 ## Current Architecture
 
 ```text
-                         ┌──────────────────┐
-                         │     DOCUMENT     │
-                         │   PDF / TXT / MD │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │  Content Hashing │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                     Tenant-Aware Duplicate Check
-                                  │
-                          ┌───────┴────────┐
-                          │                │
-                     Duplicate          New File
-                          │                │
-                       Return             ▼
-                                  ┌──────────────────┐
-                                  │ Document Loader  │
-                                  └────────┬─────────┘
-                                           │
-                                           ▼
-                                  ┌──────────────────┐
-                                  │     Chunker      │
-                                  │ Recursive Split  │
-                                  └────────┬─────────┘
-                                           │
-                                           ▼
-                                  ┌──────────────────┐
-                                  │ Metadata Enrich. │
-                                  └────────┬─────────┘
-                                           │
-                                           ▼
-                                  ┌──────────────────┐
-                                  │  BGE Embeddings  │
-                                  │  768 Dimensions  │
-                                  └────────┬─────────┘
-                                           │
-                                           ▼
-                         ┌────────────────────────────────┐
-                         │     PostgreSQL + PGVector      │
-                         │                                │
-                         │ Documents                      │
-                         │   └── tenant_id                │
-                         │                                │
-                         │ Chunks                         │
-                         │   └── embedding VECTOR(768)    │
-                         └──────────────┬─────────────────┘
-                                        │
-                                        │
-                                  USER QUERY
-                                        │
-                                        ▼
-                               ┌──────────────────┐
-                               │ Query Embedding  │
-                               │       BGE        │
-                               └────────┬─────────┘
-                                        │
-                                        ▼
-                               ┌──────────────────┐
-                               │ Retrieval Service│
-                               └────────┬─────────┘
-                                        │
-                                        ▼
-                         Filter by authenticated tenant
-                                        │
-                                        ▼
-                         PGVector Cosine Distance Search
-                                        │
-                                        ▼
-                          Top-K + Distance Threshold
-                                        │
-                                        ▼
-                               ┌──────────────────┐
-                               │ Context Builder  │
-                               └────────┬─────────┘
-                                        │
-                                        ▼
-                               ┌──────────────────┐
-                               │ GenerationService│
-                               └────────┬─────────┘
-                                        │
-                                        ▼
-                               ┌──────────────────┐
-                               │ GenerationProvider
-                               │   OpenRouter     │
-                               │      Gemma       │
-                               └────────┬─────────┘
-                                        │
-                                        ▼
-                                      ANSWER
+                          ┌──────────────────┐
+                          │     DOCUMENT     │
+                          │   PDF / TXT / MD │
+                          └────────┬─────────┘
+                                   │
+                                   ▼
+                          ┌──────────────────┐
+                          │  Content Hashing │
+                          └────────┬─────────┘
+                                   │
+                                   ▼
+                      Tenant-Aware Duplicate Check
+                                   │
+                           ┌───────┴────────┐
+                           │                │
+                      Duplicate          New File
+                           │                │
+                        Return             ▼
+                                   ┌──────────────────┐
+                                   │ Document Loader  │
+                                   └────────┬─────────┘
+                                            │
+                                            ▼
+                                   ┌──────────────────┐
+                                   │     Chunker      │
+                                   │ Recursive Split  │
+                                   └────────┬─────────┘
+                                            │
+                                            ▼
+                                   ┌──────────────────┐
+                                   │ Metadata Enrich. │
+                                   └────────┬─────────┘
+                                            │
+                                            ▼
+                                   ┌──────────────────┐
+                                   │  BGE Embeddings  │
+                                   │  768 Dimensions  │
+                                   └────────┬─────────┘
+                                            │
+                                            ▼
+                          ┌────────────────────────────────┐
+                          │     PostgreSQL + PGVector      │
+                          │                                │
+                          │ Documents                      │
+                          │   └── tenant_id                │
+                          │                                │
+                          │ Chunks                         │
+                          │   └── embedding VECTOR(768)    │
+                          └──────────────┬─────────────────┘
+                                         │
+                                         ▼
+                                      USER QUERY
+                                         │
+                                         ▼
+                                ┌──────────────────┐
+                                │ Query Embedding  │
+                                │       BGE        │
+                                └────────┬─────────┘
+                                         │
+                                         ▼
+                                ┌──────────────────┐
+                                │ RetrievalService │
+                                └────────┬─────────┘
+                                         │
+                                         ▼
+                              Tenant-Scoped DB Filter
+                                         │
+                                         ▼
+                           PGVector Cosine Distance Search
+                                         │
+                                         ▼
+                            Candidate Retrieval (~20)
+                                         │
+                                         ▼
+                           ┌────────────────────────┐
+                           │ CrossEncoder Reranker  │
+                           │ ms-marco-MiniLM-L-6-v2 │
+                           └───────────┬────────────┘
+                                       │
+                                       ▼
+                                Final Top-K (~5)
+                                       │
+                                       ▼
+                                ┌──────────────────┐
+                                │ Context Builder  │
+                                └────────┬─────────┘
+                                         │
+                                         ▼
+                                ┌──────────────────┐
+                                │ GenerationService│
+                                └────────┬─────────┘
+                                         │
+                                         ▼
+                                ┌──────────────────┐
+                                │ OpenRouter       │
+                                │ Generation       │
+                                └────────┬─────────┘
+                                         │
+                                         ▼
+                                       ANSWER
 ```
 
 ---
 
 # Multi-Tenant Data Isolation
 
-The RAG engine is designed so that retrieval is scoped to the tenant requesting the information.
+The RAG engine is designed so retrieval is scoped to the tenant requesting the information.
 
 A document belongs to a tenant:
 
@@ -156,7 +165,7 @@ Document
 Chunks
 ```
 
-The `documents` table contains a `tenant_id`, and retrieval joins chunks back to their parent document before performing semantic search.
+The `documents` table contains a `tenant_id`, and retrieval joins chunks back to their parent document before semantic search.
 
 Conceptually:
 
@@ -167,12 +176,12 @@ JOIN documents
     ON chunks.document_id = documents.id
 WHERE documents.tenant_id = :tenant_id
 ORDER BY distance
-LIMIT :top_k;
+LIMIT :candidate_k;
 ```
 
-This ensures that one tenant's queries cannot retrieve chunks belonging to another tenant.
+Tenant filtering happens **inside the database query before reranking**.
 
-Tenant filtering happens inside the database query rather than after retrieval.
+This is important because chunks belonging to another tenant should never be exposed to the reranker, context builder, or generation model.
 
 ---
 
@@ -200,7 +209,7 @@ Tenant B + Document X  → allowed
 Tenant A + Document X  → duplicate
 ```
 
-The document hash is also checked before chunking and embedding, avoiding unnecessary embedding computation for documents already ingested by the same tenant.
+The document hash is checked before chunking and embedding, avoiding unnecessary embedding computation for documents already ingested by the same tenant.
 
 ---
 
@@ -226,13 +235,13 @@ BGE Embeddings
 PostgreSQL + PGVector
 ```
 
-Supported formats currently include:
+Supported formats:
 
-* PDF
-* TXT
-* Markdown
+- PDF
+- TXT
+- Markdown
 
-Documents are split into smaller overlapping chunks so that retrieval can operate on focused semantic units instead of embedding entire documents as a single vector.
+Documents are split into smaller overlapping chunks so retrieval operates on focused semantic units instead of embedding an entire document as one vector.
 
 Each chunk receives metadata such as:
 
@@ -243,15 +252,17 @@ chunk_index
 content_type
 ```
 
-The chunk text is then converted into a 768-dimensional vector using:
+Chunk text is embedded using:
 
 ```text
 BAAI/bge-base-en-v1.5
 ```
 
+with 768-dimensional embeddings.
+
 ---
 
-## 2. Semantic Retrieval
+## 2. Candidate Retrieval
 
 When a tenant submits a query:
 
@@ -266,29 +277,65 @@ Tenant Filter
    ↓
 PGVector Cosine Distance Search
    ↓
-Top-K Candidates
+Candidate Top-K
    ↓
 Distance Threshold
-   ↓
-Relevant Chunks
 ```
 
-The same embedding model is used for both documents and queries so that they exist in the same vector space.
+The same BGE model is used for documents and queries so both exist in the same embedding space.
 
-Retrieval currently supports:
+Candidate retrieval supports:
 
-* cosine-distance search
-* configurable `top_k`
-* configurable distance threshold
-* tenant-scoped retrieval
+- cosine-distance search
+- configurable candidate count
+- configurable distance threshold
+- tenant-scoped filtering
 
-The threshold prevents clearly irrelevant chunks from being sent to the generation model.
+Vector retrieval is optimized for fast broad candidate selection.
 
 ---
 
-## 3. Context Construction
+## 3. CrossEncoder Reranking
 
-Retrieved chunks are formatted into a structured context containing information such as:
+Vector similarity is fast, but query and chunk embeddings are produced independently.
+
+The reranking stage processes the **query and candidate chunk together** using:
+
+```text
+cross-encoder/ms-marco-MiniLM-L-6-v2
+```
+
+For each candidate:
+
+```text
+(query, chunk)
+      ↓
+CrossEncoder
+      ↓
+relevance score
+```
+
+Candidates are sorted by their CrossEncoder relevance score, and only the highest-ranked chunks are passed to the context builder.
+
+Current retrieval strategy:
+
+```text
+PGVector candidate retrieval
+        ↓
+~20 candidates
+        ↓
+CrossEncoder reranking
+        ↓
+~5 final chunks
+```
+
+This keeps vector search responsible for scalable candidate generation while using the more expensive CrossEncoder only on a small candidate set.
+
+---
+
+## 4. Context Construction
+
+Reranked chunks are formatted into structured context containing information such as:
 
 ```text
 SOURCE
@@ -297,16 +344,16 @@ DISTANCE
 CONTENT
 ```
 
-This gives the generation layer both the retrieved text and information about where it came from.
+The context layer remains independent of the retrieval and generation implementations.
 
 ---
 
-## 4. Generation
+## 5. Generation
 
 ```text
 User Question
       +
-Retrieved Context
+Reranked Context
       ↓
 GenerationService
       ↓
@@ -314,26 +361,55 @@ GenerationProvider
       ↓
 OpenRouter
       ↓
-Gemma
-      ↓
 Answer
 ```
 
-The generation layer is separated from the provider implementation.
+The generation layer is separated from the provider implementation, making it possible to support additional providers later without rewriting the RAG orchestration layer.
 
-This makes it possible to support additional backends later without rewriting the RAG orchestration layer.
+If retrieval returns no suitable context, the system avoids blindly asking the LLM to generate an answer from unrelated outside knowledge.
 
-Possible future providers could include:
+---
+
+# FastAPI Layer
+
+The core RAG engine is exposed through FastAPI.
+
+Current endpoints:
 
 ```text
-OpenAI
-Anthropic
-Gemini
-Ollama
-Local Models
+GET  /health
+POST /documents
+POST /query
 ```
 
-If retrieval returns no suitable context, the system avoids blindly asking the LLM to generate an answer from outside knowledge.
+### `GET /health`
+
+Basic service health endpoint.
+
+### `POST /documents`
+
+Accepts:
+
+- `tenant_id`
+- PDF, TXT, or Markdown file
+
+The uploaded file is passed into the existing ingestion pipeline.
+
+### `POST /query`
+
+Accepts a query and tenant identifier, then executes:
+
+```text
+tenant-scoped retrieval
+        ↓
+CrossEncoder reranking
+        ↓
+context construction
+        ↓
+generation
+```
+
+Tenant identity is currently supplied explicitly by the caller. Authentication-derived tenant identity is a future improvement.
 
 ---
 
@@ -345,7 +421,10 @@ RAG/
 ├── app/
 │   │
 │   ├── api/
-│   │   └── Future FastAPI layer
+│   │   ├── __init__.py
+│   │   ├── dependencies.py
+│   │   ├── routes.py
+│   │   └── schemas.py
 │   │
 │   ├── core/
 │   │   ├── config.py
@@ -372,6 +451,12 @@ RAG/
 │   │   ├── service.py
 │   │   └── test_retrieval.py
 │   │
+│   ├── reranking/
+│   │   ├── __init__.py
+│   │   ├── provider.py
+│   │   ├── cross_encoder.py
+│   │   └── test_flashrank.py
+│   │
 │   ├── context/
 │   │   ├── builder.py
 │   │   └── test_context.py
@@ -391,56 +476,61 @@ RAG/
 ├── data/
 │   └── documents/
 │
-├── docker-compose.yml
+├── docker-compose.yaml
 ├── requirements.txt
-├── .env.example
 ├── .gitignore
-└── README.md
+└── readme.md
 ```
+
+> Note: the reranking test file can be renamed to `test_reranking.py` later if the old FlashRank-specific filename is still present.
 
 ---
 
 # Core Components
 
-| Component    | Responsibility                                                       |
-| ------------ | -------------------------------------------------------------------- |
-| `ingestion`  | Document loading, deduplication, chunking, metadata, and persistence |
-| `embeddings` | Document and query embedding generation                              |
-| `models`     | SQLAlchemy database models                                           |
-| `retrieval`  | Tenant-scoped PGVector semantic retrieval                            |
-| `context`    | Converts retrieved chunks into LLM context                           |
-| `generation` | Provider-independent LLM generation                                  |
-| `rag`        | Orchestrates retrieval → context → generation                        |
-| `core`       | Configuration, database connections, and infrastructure utilities    |
-| `api`        | Planned FastAPI transport layer                                      |
+| Component | Responsibility |
+| --- | --- |
+| `ingestion` | Document loading, deduplication, chunking, metadata, and persistence |
+| `embeddings` | Document and query embedding generation |
+| `models` | SQLAlchemy database models |
+| `retrieval` | Tenant-scoped PGVector candidate retrieval |
+| `reranking` | CrossEncoder relevance reranking |
+| `context` | Converts reranked chunks into LLM context |
+| `generation` | Provider-independent LLM generation |
+| `rag` | Orchestrates retrieval → reranking → context → generation |
+| `core` | Configuration, database connections, and infrastructure utilities |
+| `api` | FastAPI transport and dependency wiring |
 
 ---
 
 # Tech Stack
 
-### AI / Retrieval
+## AI / Retrieval
 
-* BGE embeddings
-* `BAAI/bge-base-en-v1.5`
-* PGVector
-* OpenRouter
-* Gemma
+- `BAAI/bge-base-en-v1.5`
+- Sentence Transformers
+- `cross-encoder/ms-marco-MiniLM-L-6-v2`
+- PGVector
+- OpenRouter
 
-### Backend
+## Backend
 
-* Python
-* SQLAlchemy
-* PostgreSQL
-* Docker
+- Python 3.11
+- FastAPI
+- Pydantic
+- SQLAlchemy
+- PostgreSQL
+- Docker
 
-### Planned
+## Planned
 
-* FastAPI
-* FlashRank
-* structured citations
-* automated evaluation
-* observability
-* authentication
+- retrieval evaluation
+- end-to-end RAG evaluation
+- structured citations
+- authentication
+- database migrations
+- automated PGVector initialization
+- logging and observability
 
 ---
 
@@ -467,8 +557,6 @@ A composite unique constraint protects against duplicate uploads within the same
 UNIQUE(tenant_id, content_hash)
 ```
 
----
-
 ## Chunks
 
 ```text
@@ -484,15 +572,15 @@ metadata
 created_at
 ```
 
-Chunks reference documents through:
+Tenant ownership is derived through the parent document:
 
 ```text
 chunks.document_id
         ↓
 documents.id
+        ↓
+documents.tenant_id
 ```
-
-Tenant ownership is therefore derived through the parent document.
 
 ---
 
@@ -505,33 +593,33 @@ git clone https://github.com/mohitrai810/RAG.git
 cd RAG
 ```
 
----
-
-## 2. Create Virtual Environment
+## 2. Create Python 3.11 Virtual Environment
 
 ### Windows
 
 ```powershell
-python -m venv .venv
+py -3.11 -m venv .venv
 .venv\Scripts\activate
 ```
 
 ### Linux / macOS
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 ```
 
----
+Verify:
+
+```bash
+python --version
+```
 
 ## 3. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
-
----
 
 ## 4. Configure Environment
 
@@ -541,19 +629,16 @@ Example:
 
 ```env
 DATABASE_URL=postgresql+psycopg://raguser:ragpassword@localhost:5433/ragdb
-
 EMBEDDING_MODEL=BAAI/bge-base-en-v1.5
-EMBEDDING_DIMENSION=768
-
+EMBEDDING_DIMENSIONS=768
 OPENROUTER_API_KEY=your_api_key
-OPENROUTER_MODEL=your_model
 ```
 
 Do not commit `.env` or API keys.
 
 ---
 
-# Running the Infrastructure
+# Running Infrastructure
 
 Start PostgreSQL + PGVector:
 
@@ -567,15 +652,7 @@ Verify:
 docker ps
 ```
 
-The PostgreSQL service is exposed locally through the port configured in `docker-compose.yml`.
-
----
-
-## Enable PGVector
-
-For a fresh PostgreSQL volume, the `vector` extension must exist before SQLAlchemy creates the chunk table.
-
-Example:
+For a fresh PostgreSQL volume, ensure the vector extension exists:
 
 ```bash
 docker exec -it rag-postgres psql -U raguser -d ragdb
@@ -587,20 +664,22 @@ Then:
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-This initialization will be automated in a future infrastructure improvement.
+Automating this initialization is still planned.
 
 ---
 
-# Create Database Tables
+# Running the API
+
+Start the FastAPI server:
 
 ```bash
-python -m app.main
+python -m uvicorn app.main:app --reload
 ```
 
-Expected:
+Open Swagger UI:
 
 ```text
-Database tables created successfully.
+http://127.0.0.1:8000/docs
 ```
 
 ---
@@ -613,15 +692,11 @@ Database tables created successfully.
 python -m app.embeddings.test_embedding
 ```
 
-The BGE provider should return:
+Expected embedding size:
 
 ```text
-Embedding dimensions: 768
+768
 ```
-
-The first run may download the embedding model.
-
----
 
 ## Test Tenant-Aware Ingestion
 
@@ -629,34 +704,25 @@ The first run may download the embedding model.
 python -m app.ingestion.test_ingestion
 ```
 
-The ingestion test verifies behavior such as:
-
-```text
-Tenant A uploads document
-→ stored
-
-Tenant B uploads same document
-→ stored
-
-Tenant A uploads same document again
-→ duplicate detected
-```
-
----
-
 ## Test Tenant-Isolated Retrieval
 
 ```bash
 python -m app.retrieval.test_retrieval
 ```
 
-Retrieval requires a tenant identifier.
+## Test Reranking
 
-Only documents owned by that tenant participate in vector search.
+Run the reranking-specific test used in the repository.
 
-A document ingested under another tenant should not appear in the retrieval results.
+The important behavior to verify is:
 
----
+```text
+PGVector ordering
+        ↓
+CrossEncoder scoring
+        ↓
+reordered candidates
+```
 
 ## Run the Complete RAG Pipeline
 
@@ -673,9 +739,13 @@ BGE Query Embedding
    ↓
 Tenant-Scoped PGVector Search
    ↓
-Top-K
+Candidate Top-K
    ↓
 Distance Filtering
+   ↓
+CrossEncoder Reranking
+   ↓
+Final Top-K
    ↓
 Context Builder
    ↓
@@ -692,98 +762,124 @@ Answer
 
 ## Core RAG Engine
 
-* [x] PDF / TXT / Markdown ingestion
-* [x] Recursive text chunking
-* [x] Chunk metadata
-* [x] SHA-256 document hashing
-* [x] Tenant-scoped document deduplication
-* [x] BGE document embeddings
-* [x] BGE query embeddings
-* [x] PostgreSQL persistence
-* [x] PGVector storage
-* [x] Semantic vector retrieval
-* [x] Tenant-isolated retrieval
-* [x] Top-K retrieval
-* [x] Distance-threshold filtering
-* [x] Context construction
-* [x] Generation provider abstraction
-* [x] OpenRouter generation
-* [x] End-to-end RAG orchestration
+- [x] PDF / TXT / Markdown ingestion
+- [x] Recursive text chunking
+- [x] Chunk metadata
+- [x] SHA-256 document hashing
+- [x] Tenant-scoped document deduplication
+- [x] BGE document embeddings
+- [x] BGE query embeddings
+- [x] PostgreSQL persistence
+- [x] PGVector storage
+- [x] Semantic vector retrieval
+- [x] Tenant-isolated retrieval
+- [x] Distance-threshold filtering
+- [x] Candidate retrieval
+- [x] CrossEncoder reranking
+- [x] Context construction
+- [x] Generation provider abstraction
+- [x] OpenRouter generation
+- [x] End-to-end RAG orchestration
+- [x] FastAPI health endpoint
+- [x] FastAPI document upload endpoint
+- [x] FastAPI query endpoint
+- [x] Request/response schemas
+- [x] Shared service dependency wiring
 
 ---
 
-# Next Milestone
+# Next Milestone: RAG Evaluation
 
-The next milestone is converting the core engine into a proper AI backend service.
+The next priority is **not adding more infrastructure**.
 
-Planned work:
+The next goal is to measure whether the retrieval pipeline actually improves when reranking is enabled.
 
-* [ ] FastAPI document upload endpoint
-* [ ] FastAPI query endpoint
-* [ ] health/readiness endpoints
-* [ ] request/response schemas
-* [ ] authentication
-* [ ] tenant identity derived from authenticated requests
-* [ ] structured source attribution
-* [ ] FlashRank reranking
-* [ ] retrieval evaluation
-* [ ] proper automated tests
-* [ ] database migrations
-* [ ] automated PGVector initialization
-* [ ] logging and observability
+## Retrieval Evaluation
 
----
-
-# Planned Retrieval Architecture
-
-The next retrieval improvement will introduce a two-stage pipeline:
+Create a small evaluation dataset containing:
 
 ```text
-Query
-   ↓
-BGE Query Embedding
-   ↓
-Tenant-Scoped PGVector Search
-   ↓
-Top ~20 Candidates
-   ↓
-FlashRank Reranking
-   ↓
-Top ~5 Chunks
-   ↓
-Context Builder
-   ↓
-LLM
+query
+expected_document
+expected_chunk
 ```
 
-PGVector will act as the high-recall candidate retriever, while FlashRank will provide a second relevance-ranking stage before chunks enter the LLM context.
-
----
-
-# Future Evaluation
-
-Instead of assuming reranking improves retrieval, the goal is to measure it.
-
-Planned metrics include:
-
-```text
-HitRate@K
-MRR
-Precision@K
-```
-
-This will allow comparison between:
+Then compare:
 
 ```text
 Vector Retrieval
         vs
-Vector Retrieval + Reranking
+Vector Retrieval + CrossEncoder Reranking
 ```
+
+Initial metrics:
+
+```text
+HitRate@K
+MRR
+Recall@K
+Precision@K
+```
+
+The objective is to answer questions such as:
+
+- Does reranking move the correct chunk higher?
+- How often is the relevant chunk present in the candidate set?
+- How much does MRR improve after reranking?
+- What candidate count gives the best quality/latency tradeoff?
+
+Example target reporting:
+
+```text
+PGVector MRR                  = X
+PGVector + CrossEncoder MRR   = Y
+```
+
+---
+
+# Future RAG Evaluation
+
+After retrieval evaluation is stable, the next stage is end-to-end RAG evaluation.
+
+Planned areas include:
+
+```text
+Faithfulness / Groundedness
+Answer Relevance
+Context Relevance
+Citation Correctness
+```
+
+This will help identify whether failures come from:
+
+```text
+retrieval
+reranking
+context selection
+generation
+```
+
+rather than treating RAG quality as a single opaque score.
+
+---
+
+# Future Improvements
+
+- structured source attribution
+- authentication and auth-derived tenant identity
+- automated evaluation pipeline
+- proper automated test suite
+- database migrations
+- automated PGVector initialization
+- API error handling improvements
+- asynchronous provider calls
+- logging and observability
+- optional alternative reranking providers
 
 ---
 
 # Goal
 
-The long-term goal is to build a production-oriented multi-tenant knowledge platform where users can securely upload documents and query only their own knowledge base through a reliable RAG backend.
+The long-term goal is to build a production-oriented multi-tenant knowledge platform where users can securely upload documents and query only their own knowledge base through a reliable and measurable RAG backend.
 
-The project is being developed incrementally with emphasis on understanding and implementing the engineering decisions behind RAG systems rather than assembling a black-box demo.
+The project is developed incrementally with emphasis on understanding the engineering decisions behind retrieval, reranking, evaluation, and generation rather than assembling a black-box demo.

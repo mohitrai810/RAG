@@ -8,7 +8,7 @@ class OpenRouterProvider(GenerationProvider):
     def __init__(
         self,
         api_key: str,
-        model: str = "google/gemma-4-26b-a4b-it:free",
+        model: str = "openrouter/auto",
     ):
         self.api_key = api_key
         self.model = model
