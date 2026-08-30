@@ -1,0 +1,172 @@
+{
+  "name": "Technical Troubleshooting Corpus",
+  "version": "1.0.0",
+  "license": "CC0-1.0",
+  "documents": [
+    {
+      "document_id": "doc-redis-1",
+      "path": "documents/redis-operations-1.md",
+      "sha256": "92698ee789b15a10069ff04da9a8f1aa457b081734dd88c2b795a47e159a87d3",
+      "evidence_ids": [
+        "KB-REDIS-001",
+        "KB-REDIS-002",
+        "KB-REDIS-003",
+        "KB-REDIS-004"
+      ]
+    },
+    {
+      "document_id": "doc-redis-2",
+      "path": "documents/redis-operations-2.md",
+      "sha256": "bc1dbdd789d50fb58da588c78dfafb0f47bd29553a58e3a304524c5f5d2b95f1",
+      "evidence_ids": [
+        "KB-REDIS-005",
+        "KB-REDIS-006",
+        "KB-REDIS-007",
+        "KB-REDIS-008"
+      ]
+    },
+    {
+      "document_id": "doc-redis-3",
+      "path": "documents/redis-operations-3.md",
+      "sha256": "8e7a5a15dc996326f44cd0129efd7d0bb35cd5823c1d78c382da390285b877c3",
+      "evidence_ids": [
+        "KB-REDIS-009",
+        "KB-REDIS-010",
+        "KB-REDIS-011",
+        "KB-REDIS-012"
+      ]
+    },
+    {
+      "document_id": "doc-postgresql-1",
+      "path": "documents/postgresql-operations-1.md",
+      "sha256": "44cefc5cb74d59817db370fd9acfbc4b43f768d8c9ab233ac24c380e4b6a1522",
+      "evidence_ids": [
+        "KB-POSTGRESQL-001",
+        "KB-POSTGRESQL-002",
+        "KB-POSTGRESQL-003",
+        "KB-POSTGRESQL-004"
+      ]
+    },
+    {
+      "document_id": "doc-postgresql-2",
+      "path": "documents/postgresql-operations-2.md",
+      "sha256": "4b1db835168c46c1e7a2af65a5d60935d0ad26885fafe9bf27609d2e1b59cea7",
+      "evidence_ids": [
+        "KB-POSTGRESQL-005",
+        "KB-POSTGRESQL-006",
+        "KB-POSTGRESQL-007",
+        "KB-POSTGRESQL-008"
+      ]
+    },
+    {
+      "document_id": "doc-postgresql-3",
+      "path": "documents/postgresql-operations-3.md",
+      "sha256": "6cbed994a5436db82655a9c43ffb863b9cfc70b18011a3225bfe4f28fcc8793f",
+      "evidence_ids": [
+        "KB-POSTGRESQL-009",
+        "KB-POSTGRESQL-010",
+        "KB-POSTGRESQL-011",
+        "KB-POSTGRESQL-012"
+      ]
+    },
+    {
+      "document_id": "doc-docker-1",
+      "path": "documents/docker-operations-1.md",
+      "sha256": "9e4cbf187b168a88574a4e73247ae96701763fe34a85d399cb96c374ff38a40e",
+      "evidence_ids": [
+        "KB-DOCKER-001",
+        "KB-DOCKER-002",
+        "KB-DOCKER-003",
+        "KB-DOCKER-004"
+      ]
+    },
+    {
+      "document_id": "doc-docker-2",
+      "path": "documents/docker-operations-2.md",
+      "sha256": "a391784db2dfc659558d013f181c733000a36a3d9a4d617629d52161a1b667bd",
+      "evidence_ids": [
+        "KB-DOCKER-005",
+        "KB-DOCKER-006",
+        "KB-DOCKER-007",
+        "KB-DOCKER-008"
+      ]
+    },
+    {
+      "document_id": "doc-docker-3",
+      "path": "documents/docker-operations-3.md",
+      "sha256": "9614b42b5f50080f2d9e5c9fa438d4a4ac047dedf4edca47ff5a14ebfb4cd890",
+      "evidence_ids": [
+        "KB-DOCKER-009",
+        "KB-DOCKER-010",
+        "KB-DOCKER-011",
+        "KB-DOCKER-012"
+      ]
+    },
+    {
+      "document_id": "doc-fastapi-1",
+      "path": "documents/fastapi-operations-1.md",
+      "sha256": "3e9d6df9307a5030dcd74fc3749fc111270ccfb5adb772fb62b7305deb419ca0",
+      "evidence_ids": [
+        "KB-FASTAPI-001",
+        "KB-FASTAPI-002",
+        "KB-FASTAPI-003",
+        "KB-FASTAPI-004"
+      ]
+    },
+    {
+      "document_id": "doc-fastapi-2",
+      "path": "documents/fastapi-operations-2.md",
+      "sha256": "2a69ecbd77bfd5034e6da99838fdd29b54e1d4398114115ce9dd7bf463394bfb",
+      "evidence_ids": [
+        "KB-FASTAPI-005",
+        "KB-FASTAPI-006",
+        "KB-FASTAPI-007",
+        "KB-FASTAPI-008"
+      ]
+    },
+    {
+      "document_id": "doc-fastapi-3",
+      "path": "documents/fastapi-operations-3.md",
+      "sha256": "fbb4a9e035ca969851c97d4a36debc1ac2c69b2fceccf2b51270532c9d85446d",
+      "evidence_ids": [
+        "KB-FASTAPI-009",
+        "KB-FASTAPI-010",
+        "KB-FASTAPI-011",
+        "KB-FASTAPI-012"
+      ]
+    },
+    {
+      "document_id": "doc-linux-1",
+      "path": "documents/linux-operations-1.md",
+      "sha256": "efa585e094271ae3dd56c7ff4b3847409b12dd607b4499dee99e687a3e977337",
+      "evidence_ids": [
+        "KB-LINUX-001",
+        "KB-LINUX-002",
+        "KB-LINUX-003",
+        "KB-LINUX-004"
+      ]
+    },
+    {
+      "document_id": "doc-linux-2",
+      "path": "documents/linux-operations-2.md",
+      "sha256": "ecd80248b1c7b611b3fc711915bf686f36258bf3046d294b06e5a1cb162784b5",
+      "evidence_ids": [
+        "KB-LINUX-005",
+        "KB-LINUX-006",
+        "KB-LINUX-007",
+        "KB-LINUX-008"
+      ]
+    },
+    {
+      "document_id": "doc-linux-3",
+      "path": "documents/linux-operations-3.md",
+      "sha256": "f45b432b0dfa1a9063897c1c542e28bbc54accd9b08b487aedd83ec9406cd317",
+      "evidence_ids": [
+        "KB-LINUX-009",
+        "KB-LINUX-010",
+        "KB-LINUX-011",
+        "KB-LINUX-012"
+      ]
+    }
+  ]
+}

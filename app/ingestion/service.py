@@ -1,10 +1,10 @@
 from pathlib import Path
 from uuid import UUID
 from mimetypes import guess_type
+from typing import Optional
 
 from sqlalchemy import select
 
-from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.embeddings.bge import BGEEmbeddingProvider
 from app.ingestion.chunker import DocumentChunker
@@ -22,11 +22,13 @@ def ingest(
     file_path: str,
     tenant_id: UUID,
     embedding_provider: BGEEmbeddingProvider,
+    source_name: str | None = None,
 ):
     path = Path(file_path)
+    source = source_name or path.name
 
     document_hash = hash_file(file_path)
-    mime_type, _ = guess_type(path.name)
+    mime_type, _ = guess_type(source)
 
     with SessionLocal() as session:
         existing_document = session.scalar(
@@ -50,12 +52,7 @@ def ingest(
     chunks = enrich_chunks(
         chunks,
         document_id=document_id,
-        source=path.name,
-    )
-
-    settings = get_settings()
-    embedding_provider = BGEEmbeddingProvider(
-        settings.embedding_model
+        source=source,
     )
 
     embeddings = embedding_provider.embed_documents(
@@ -66,11 +63,11 @@ def ingest(
         document = Document(
             id=UUID(document_id),
             tenant_id=tenant_id,
-            source=path.name,
+            source=source,
             content_hash=document_hash,
             mime_type=mime_type,
             document_metadata={
-                "source": path.name,
+                "source": source,
             },
         )
 

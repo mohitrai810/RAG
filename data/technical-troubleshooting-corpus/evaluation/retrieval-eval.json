@@ -1,0 +1,522 @@
+[
+  {
+    "id": "q-001",
+    "query": "Why did Redis stop accepting writes after an RDB snapshot failed?",
+    "relevant_evidence_ids": [
+      "KB-REDIS-001"
+    ],
+    "relevant_document_ids": [
+      "doc-redis-1"
+    ],
+    "reference_answer": "The likely cause is that Redis cannot persist an RDB snapshot and stop-writes-on-bgsave-error is enabled. Diagnose it by checking that inspect INFO persistence, disk capacity, permissions, and Redis logs. The preferred resolution is to restore writable storage or permissions, confirm BGSAVE succeeds, then keep the safety setting enabled.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-002",
+    "query": "What should I inspect when appendonly.aof keeps growing and rewrite never finishes?",
+    "relevant_evidence_ids": [
+      "KB-REDIS-002"
+    ],
+    "relevant_document_ids": [
+      "doc-redis-1"
+    ],
+    "reference_answer": "The likely cause is that the background AOF rewrite is blocked by insufficient free disk space or heavy copy-on-write pressure. Diagnose it by checking that check aof_rewrite_in_progress, latest_fork_usec, disk free space, and memory RSS. The preferred resolution is to free disk space, reduce write pressure, and trigger BGREWRITEAOF after capacity is stable.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-003",
+    "query": "Why does a replica keep requiring a full synchronization after short disconnects?",
+    "relevant_evidence_ids": [
+      "KB-REDIS-003"
+    ],
+    "relevant_document_ids": [
+      "doc-redis-1"
+    ],
+    "reference_answer": "The likely cause is that the replication backlog is too small for the disconnect duration or replication IDs changed after restart. Diagnose it by checking that compare master_replid, offsets, backlog size, and disconnect duration. The preferred resolution is to increase repl-backlog-size and avoid unnecessary primary restarts.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-004",
+    "query": "Why can BGSAVE cause latency and memory spikes?",
+    "relevant_evidence_ids": [
+      "KB-REDIS-004"
+    ],
+    "relevant_document_ids": [
+      "doc-redis-1"
+    ],
+    "reference_answer": "The likely cause is that copy-on-write page duplication and slow storage make the forked snapshot expensive. Diagnose it by checking that correlate latency doctor output, latest_fork_usec, RSS growth, and disk latency. The preferred resolution is to reserve memory headroom, improve storage latency, and schedule snapshots away from peak writes.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-005",
+    "query": "Why are keys being evicted even though the host still has available RAM?",
+    "relevant_evidence_ids": [
+      "KB-REDIS-005"
+    ],
+    "relevant_document_ids": [
+      "doc-redis-2"
+    ],
+    "reference_answer": "The likely cause is that maxmemory is lower than host capacity and the configured eviction policy is active. Diagnose it by checking that inspect maxmemory, maxmemory-policy, used_memory, and evicted_keys. The preferred resolution is to set an intentional memory limit and choose an eviction policy matching the workload.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-006",
+    "query": "Our deployment suddenly receives NOAUTH. What changed and how should it be fixed?",
+    "relevant_evidence_ids": [
+      "KB-REDIS-006"
+    ],
+    "relevant_document_ids": [
+      "doc-redis-2"
+    ],
+    "reference_answer": "The likely cause is that the server now requires ACL authentication but clients did not send credentials. Diagnose it by checking that run ACL WHOAMI with an authenticated session and inspect client connection configuration. The preferred resolution is to configure username and password securely and rotate exposed credentials.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-007",
+    "query": "Why does Redis not immediately reclaim millions of keys that share the same TTL?",
+    "relevant_evidence_ids": [
+      "KB-REDIS-010"
+    ],
+    "relevant_document_ids": [
+      "doc-redis-3"
+    ],
+    "reference_answer": "The likely cause is that Redis expiration is partly lazy and active expiry cannot immediately reclaim a synchronized expiration wave. Diagnose it by checking that compare expired_keys, key counts, CPU, and TTL distribution. The preferred resolution is to jitter TTL values and avoid creating millions of keys with identical expiration times.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-008",
+    "query": "Why can a large Lua rate-limiter script pause unrelated Redis commands?",
+    "relevant_evidence_ids": [
+      "KB-REDIS-012"
+    ],
+    "relevant_document_ids": [
+      "doc-redis-3"
+    ],
+    "reference_answer": "The likely cause is that Redis runs Lua atomically on the main thread and the script performs excessive work. Diagnose it by checking that inspect SLOWLOG and script input sizes. The preferred resolution is to make scripts constant-time, cap collection scans, and move bulk work outside Redis.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-009",
+    "query": "What causes PostgreSQL to reserve the remaining connection slots?",
+    "relevant_evidence_ids": [
+      "KB-POSTGRESQL-001"
+    ],
+    "relevant_document_ids": [
+      "doc-postgresql-1"
+    ],
+    "reference_answer": "The likely cause is that application pools collectively exceed max_connections or leak checked-out sessions. Diagnose it by checking that inspect pg_stat_activity grouped by application and state. The preferred resolution is to set bounded pools, close sessions reliably, and use PgBouncer where appropriate.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-010",
+    "query": "How can idle-in-transaction sessions prevent cleanup of dead tuples?",
+    "relevant_evidence_ids": [
+      "KB-POSTGRESQL-002"
+    ],
+    "relevant_document_ids": [
+      "doc-postgresql-1"
+    ],
+    "reference_answer": "The likely cause is that clients begin transactions and wait without commit or rollback. Diagnose it by checking that inspect xact_start, state_change, query, and backend ownership. The preferred resolution is to fix transaction boundaries and configure idle_in_transaction_session_timeout.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-011",
+    "query": "How should an application handle PostgreSQL deadlocks?",
+    "relevant_evidence_ids": [
+      "KB-POSTGRESQL-003"
+    ],
+    "relevant_document_ids": [
+      "doc-postgresql-1"
+    ],
+    "reference_answer": "The likely cause is that concurrent transactions lock the same resources in inconsistent order. Diagnose it by checking that read the deadlock log and map each lock to the statements involved. The preferred resolution is to use a consistent lock order, shorten transactions, and retry aborted transactions.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-012",
+    "query": "Why might PostgreSQL ignore a newly created index?",
+    "relevant_evidence_ids": [
+      "KB-POSTGRESQL-004"
+    ],
+    "relevant_document_ids": [
+      "doc-postgresql-1"
+    ],
+    "reference_answer": "The likely cause is that the predicate is not selective, statistics are stale, or the expression does not match the index. Diagnose it by checking that run EXPLAIN ANALYZE and inspect statistics, casts, and predicate shape. The preferred resolution is to refresh statistics and create an index matching the actual predicate only when selective.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-013",
+    "query": "How do I identify what is blocking an ALTER TABLE?",
+    "relevant_evidence_ids": [
+      "KB-POSTGRESQL-006"
+    ],
+    "relevant_document_ids": [
+      "doc-postgresql-2"
+    ],
+    "reference_answer": "The likely cause is that another transaction holds a conflicting lock, often from an old query or idle transaction. Diagnose it by checking that query pg_locks with pg_stat_activity and identify the blocker chain. The preferred resolution is to cancel or terminate the blocker safely and schedule lock-sensitive migrations.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-014",
+    "query": "Why is pg_wal consuming all available disk space?",
+    "relevant_evidence_ids": [
+      "KB-POSTGRESQL-008"
+    ],
+    "relevant_document_ids": [
+      "doc-postgresql-2"
+    ],
+    "reference_answer": "The likely cause is that an inactive replication slot or failed archive command prevents WAL recycling. Diagnose it by checking that inspect pg_replication_slots and pg_stat_archiver. The preferred resolution is to repair archiving or remove confirmed-unused slots before reclaiming capacity.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-015",
+    "query": "How should concurrent create requests avoid a check-then-insert race?",
+    "relevant_evidence_ids": [
+      "KB-POSTGRESQL-009"
+    ],
+    "relevant_document_ids": [
+      "doc-postgresql-3"
+    ],
+    "reference_answer": "The likely cause is that a check-then-insert sequence is not atomic. Diagnose it by checking that reproduce concurrent inserts and inspect the unique index. The preferred resolution is to use INSERT ON CONFLICT and treat the unique constraint as the concurrency boundary.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-016",
+    "query": "PostgreSQL is healthy, so why are requests waiting for pooled connections?",
+    "relevant_evidence_ids": [
+      "KB-POSTGRESQL-012"
+    ],
+    "relevant_document_ids": [
+      "doc-postgresql-3"
+    ],
+    "reference_answer": "The likely cause is that pool slots are held by slow operations or leaked sessions. Diagnose it by checking that measure checkout duration and active versus waiting pool counts. The preferred resolution is to close sessions in finally blocks, bound transactions, and size the pool from measured concurrency.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-017",
+    "query": "Why can one Compose container fail to resolve another service by name?",
+    "relevant_evidence_ids": [
+      "KB-DOCKER-001"
+    ],
+    "relevant_document_ids": [
+      "doc-docker-1"
+    ],
+    "reference_answer": "The likely cause is that containers are on different user-defined networks or the requested service name is wrong. Diagnose it by checking that inspect docker network membership and resolve the Compose service name inside the container. The preferred resolution is to attach services to the same network and use service names instead of localhost.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-018",
+    "query": "The port is published, but why is the application unreachable from the host?",
+    "relevant_evidence_ids": [
+      "KB-DOCKER-002"
+    ],
+    "relevant_document_ids": [
+      "doc-docker-1"
+    ],
+    "reference_answer": "The likely cause is that the process listens on 127.0.0.1 inside the container instead of 0.0.0.0. Diagnose it by checking that inspect the listening socket inside the container and the published port mapping. The preferred resolution is to bind the application to 0.0.0.0 and publish the intended container port.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-019",
+    "query": "Why did files baked into my Docker image disappear after startup?",
+    "relevant_evidence_ids": [
+      "KB-DOCKER-004"
+    ],
+    "relevant_document_ids": [
+      "doc-docker-1"
+    ],
+    "reference_answer": "The likely cause is that a bind mount overlays the image directory with host contents. Diagnose it by checking that compare image contents with mounts shown by docker inspect. The preferred resolution is to mount a narrower path or populate the host directory intentionally.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-020",
+    "query": "How should I diagnose permission denied errors on a named volume?",
+    "relevant_evidence_ids": [
+      "KB-DOCKER-005"
+    ],
+    "relevant_document_ids": [
+      "doc-docker-2"
+    ],
+    "reference_answer": "The likely cause is that the container UID does not own the existing volume files. Diagnose it by checking that inspect numeric UID and GID both inside the container and on the volume. The preferred resolution is to set correct ownership during initialization and avoid running the whole service as root.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-021",
+    "query": "What commonly makes a small application image several gigabytes large?",
+    "relevant_evidence_ids": [
+      "KB-DOCKER-007"
+    ],
+    "relevant_document_ids": [
+      "doc-docker-2"
+    ],
+    "reference_answer": "The likely cause is that build tools, caches, model files, or package-manager artifacts remain in final layers. Diagnose it by checking that inspect layer sizes with docker history. The preferred resolution is to use multi-stage builds and remove caches in the same layer where they are created.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-022",
+    "query": "How do I confirm that Docker killed a container for exceeding memory?",
+    "relevant_evidence_ids": [
+      "KB-DOCKER-009"
+    ],
+    "relevant_document_ids": [
+      "doc-docker-3"
+    ],
+    "reference_answer": "The likely cause is that memory usage exceeded the container limit or the host invoked the OOM killer. Diagnose it by checking that inspect State.OOMKilled, cgroup metrics, and application heap growth. The preferred resolution is to fix leaks or batch sizes and set measured requests and limits with headroom.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-023",
+    "query": "Why is a Compose environment variable empty inside the container?",
+    "relevant_evidence_ids": [
+      "KB-DOCKER-010"
+    ],
+    "relevant_document_ids": [
+      "doc-docker-3"
+    ],
+    "reference_answer": "The likely cause is that Compose interpolation and container environment loading were confused or the .env file was in another directory. Diagnose it by checking that render the final model with docker compose config. The preferred resolution is to place interpolation values correctly and fail application startup on missing required settings.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-024",
+    "query": "Why should restart policies be limited while debugging startup failures?",
+    "relevant_evidence_ids": [
+      "KB-DOCKER-012"
+    ],
+    "relevant_document_ids": [
+      "doc-docker-3"
+    ],
+    "reference_answer": "The likely cause is that a restart policy relaunches a process that exits during boot. Diagnose it by checking that disable or limit restarts while diagnosing and inspect the first exit code. The preferred resolution is to fix the original startup error before restoring the production restart policy.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-025",
+    "query": "Why does FastAPI return 422 before my endpoint function executes?",
+    "relevant_evidence_ids": [
+      "KB-FASTAPI-001"
+    ],
+    "relevant_document_ids": [
+      "doc-fastapi-1"
+    ],
+    "reference_answer": "The likely cause is that the request body, query parameters, or content type does not match the Pydantic schema. Diagnose it by checking that inspect the structured error location and generated OpenAPI contract. The preferred resolution is to send the correct shape or revise the schema intentionally.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-026",
+    "query": "Why does one async FastAPI request stall other concurrent requests?",
+    "relevant_evidence_ids": [
+      "KB-FASTAPI-002"
+    ],
+    "relevant_document_ids": [
+      "doc-fastapi-1"
+    ],
+    "reference_answer": "The likely cause is that blocking I/O or CPU work runs directly inside an async endpoint. Diagnose it by checking that profile the endpoint and look for synchronous libraries or CPU-bound loops. The preferred resolution is to use async clients for I/O and move bounded CPU work to an executor or worker.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-027",
+    "query": "Why is the embedding model loaded again for every request?",
+    "relevant_evidence_ids": [
+      "KB-FASTAPI-003"
+    ],
+    "relevant_document_ids": [
+      "doc-fastapi-1"
+    ],
+    "reference_answer": "The likely cause is that an expensive provider is created inside a dependency without caching or application lifespan state. Diagnose it by checking that log construction count and inspect dependency scope. The preferred resolution is to initialize expensive immutable providers once using lifespan management or a safe cache.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-028",
+    "query": "How can an UploadFile endpoint avoid consuming memory proportional to file size?",
+    "relevant_evidence_ids": [
+      "KB-FASTAPI-004"
+    ],
+    "relevant_document_ids": [
+      "doc-fastapi-1"
+    ],
+    "reference_answer": "The likely cause is that the endpoint reads the entire UploadFile into memory at once. Diagnose it by checking that profile RSS while uploading progressively larger files. The preferred resolution is to stream the upload in bounded chunks and enforce size limits.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-029",
+    "query": "Why is returning str(exc) from an API error handler unsafe?",
+    "relevant_evidence_ids": [
+      "KB-FASTAPI-006"
+    ],
+    "relevant_document_ids": [
+      "doc-fastapi-2"
+    ],
+    "reference_answer": "The likely cause is that a broad exception handler returns str(exc) directly. Diagnose it by checking that trigger a controlled failure and inspect the response and logs. The preferred resolution is to return a stable public error code while logging sanitized internal context.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-030",
+    "query": "What pattern prevents SQLAlchemy sessions from leaking after exceptions?",
+    "relevant_evidence_ids": [
+      "KB-FASTAPI-008"
+    ],
+    "relevant_document_ids": [
+      "doc-fastapi-2"
+    ],
+    "reference_answer": "The likely cause is that session cleanup is skipped on exception paths. Diagnose it by checking that instrument pool checkout and checkin events. The preferred resolution is to provide sessions through a dependency that always closes them in finally.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-031",
+    "query": "Why are fields silently missing from my FastAPI JSON response?",
+    "relevant_evidence_ids": [
+      "KB-FASTAPI-010"
+    ],
+    "relevant_document_ids": [
+      "doc-fastapi-3"
+    ],
+    "reference_answer": "The likely cause is that the declared response_model filters undeclared attributes. Diagnose it by checking that compare the return object with the Pydantic response schema. The preferred resolution is to add intentional public fields to the schema rather than disabling validation.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-032",
+    "query": "Why does increasing Uvicorn workers multiply embedding-model memory use?",
+    "relevant_evidence_ids": [
+      "KB-FASTAPI-011"
+    ],
+    "relevant_document_ids": [
+      "doc-fastapi-3"
+    ],
+    "reference_answer": "The likely cause is that multiple Uvicorn workers independently initialize heavyweight model state. Diagnose it by checking that compare RSS per worker and model initialization logs. The preferred resolution is to choose worker count from memory capacity or use a separate model-serving process.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-033",
+    "query": "How can df report a full disk when du cannot find the space?",
+    "relevant_evidence_ids": [
+      "KB-LINUX-001"
+    ],
+    "relevant_document_ids": [
+      "doc-linux-1"
+    ],
+    "reference_answer": "The likely cause is that a deleted file remains open by a running process. Diagnose it by checking that compare df and du and run lsof for deleted files. The preferred resolution is to restart or signal the owning process so the open file descriptor is released.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-034",
+    "query": "What does high load average with low CPU utilization usually indicate?",
+    "relevant_evidence_ids": [
+      "KB-LINUX-002"
+    ],
+    "relevant_document_ids": [
+      "doc-linux-1"
+    ],
+    "reference_answer": "The likely cause is that many tasks are blocked in uninterruptible I/O wait. Diagnose it by checking that inspect process states, iostat latency, and pressure stall information. The preferred resolution is to resolve the slow storage or network filesystem instead of adding CPU.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-035",
+    "query": "Where should I look when a Linux process vanishes without an application error?",
+    "relevant_evidence_ids": [
+      "KB-LINUX-003"
+    ],
+    "relevant_document_ids": [
+      "doc-linux-1"
+    ],
+    "reference_answer": "The likely cause is that the kernel OOM killer terminated it. Diagnose it by checking that inspect kernel logs and cgroup memory events. The preferred resolution is to reduce peak memory, fix leaks, and configure realistic memory limits.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-036",
+    "query": "How can I diagnose an EMFILE error in a production service?",
+    "relevant_evidence_ids": [
+      "KB-LINUX-004"
+    ],
+    "relevant_document_ids": [
+      "doc-linux-1"
+    ],
+    "reference_answer": "The likely cause is that the process reached its file descriptor limit or leaked descriptors. Diagnose it by checking that inspect /proc PID fd count and soft and hard limits. The preferred resolution is to close descriptors correctly and raise limits only after capacity analysis.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-037",
+    "query": "Why do zombie processes accumulate?",
+    "relevant_evidence_ids": [
+      "KB-LINUX-005"
+    ],
+    "relevant_document_ids": [
+      "doc-linux-2"
+    ],
+    "reference_answer": "The likely cause is that the parent process does not reap terminated children. Diagnose it by checking that identify parent PIDs and inspect wait handling. The preferred resolution is to fix the supervisor or parent to call wait and use a proper init process in containers.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-038",
+    "query": "Why might a service run in my shell but fail under systemd?",
+    "relevant_evidence_ids": [
+      "KB-LINUX-006"
+    ],
+    "relevant_document_ids": [
+      "doc-linux-2"
+    ],
+    "reference_answer": "The likely cause is that the service has a different user, working directory, environment, or PATH. Diagnose it by checking that inspect systemctl status, journal output, and the effective unit configuration. The preferred resolution is to declare absolute paths, environment, user, and working directory explicitly.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-039",
+    "query": "Why can writes fail with no space left when disk blocks are still available?",
+    "relevant_evidence_ids": [
+      "KB-LINUX-009"
+    ],
+    "relevant_document_ids": [
+      "doc-linux-3"
+    ],
+    "reference_answer": "The likely cause is that the filesystem has exhausted inodes because of many small files. Diagnose it by checking that compare df -h with df -i and locate high file-count directories. The preferred resolution is to remove unnecessary small files and redesign retention or filesystem layout.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-040",
+    "query": "How can a container be CPU throttled even when application metrics look moderate?",
+    "relevant_evidence_ids": [
+      "KB-LINUX-011"
+    ],
+    "relevant_document_ids": [
+      "doc-linux-3"
+    ],
+    "reference_answer": "The likely cause is that cgroup CPU quota throttles runnable work. Diagnose it by checking that inspect cpu.stat throttled periods and quota settings. The preferred resolution is to set measured CPU limits or reduce concurrency and CPU demand.",
+    "category": "technical_troubleshooting",
+    "difficulty": "medium"
+  }
+]
