@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from app.api.routes import router
 from app.core.database import Base, engine
-from app.models import Chunk, Document,job
+from app.models import Chunk, Document,Job
 
 
 app = FastAPI(
