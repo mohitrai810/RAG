@@ -1,17 +1,20 @@
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.api.dependencies import get_rag_service
+from fastapi import status
+
+from app.core.database import SessionLocal
+from app.models import Job, JobStatus
+from app.queue.service import enqueue_ingestion_job
 from app.api.schemas import (
     HealthResponse,
     QueryRequest,
     QueryResponse,
     UploadResponse,
 )
-from app.ingestion.service import ingest
 from app.rag.service import RAGService
 
 
@@ -31,6 +34,7 @@ def health():
 @router.post(
     "/documents",
     response_model=UploadResponse,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 def upload_document(
     tenant_id: UUID = Form(...),
@@ -44,26 +48,42 @@ def upload_document(
             detail="Only PDF, TXT, and Markdown files are supported.",
         )
 
-    temp_path = None
-
     try:
-        with NamedTemporaryFile(
-            delete=False,
-            suffix=suffix,
-        ) as temp_file:
-            temp_file.write(file.file.read())
-            temp_path = temp_file.name
+        # 1. Create job in PostgreSQL
+        with SessionLocal() as session:
+            job = Job(
+                tenant_id=tenant_id,
+                filename=file.filename or "unknown",
+                status=JobStatus.QUEUED,
+            )
 
-        document_id = ingest(
-            temp_path,
-            tenant_id,
+            session.add(job)
+            session.commit()
+            session.refresh(job)
+
+            job_id = job.id
+
+        # 2. Save uploaded file so the worker can use it later
+        upload_dir = Path("data/uploads") / str(job_id)
+        upload_dir.mkdir(
+            parents=True,
+            exist_ok=True,
         )
 
+        file_path = upload_dir / (file.filename or f"document{suffix}")
+
+        with open(file_path, "wb") as saved_file:
+            saved_file.write(file.file.read())
+
+        # 3. Tell Redis that this job is waiting
+        enqueue_ingestion_job(job_id)
+
+        # 4. Return immediately
         return UploadResponse(
-            document_id=document_id,
+            job_id=job_id,
             tenant_id=tenant_id,
             filename=file.filename or "unknown",
-            status="stored",
+            status=JobStatus.QUEUED.value,
         )
 
     except Exception as exc:
@@ -71,29 +91,3 @@ def upload_document(
             status_code=500,
             detail=str(exc),
         )
-
-    finally:
-        if temp_path:
-            Path(temp_path).unlink(
-                missing_ok=True
-            )
-
-
-@router.post(
-    "/query",
-    response_model=QueryResponse,
-)
-def query_documents(
-    request: QueryRequest,
-    rag_service: RAGService = Depends(get_rag_service),
-):
-    answer = rag_service.ask(
-        query=request.query,
-        tenant_id=request.tenant_id,
-        top_k=request.top_k,
-        max_distance=request.max_distance,
-    )
-
-    return QueryResponse(
-        answer=answer
-    )
