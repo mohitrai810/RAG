@@ -1,6 +1,4 @@
 from app.generation.provider import GenerationProvider
-
-
 class GenerationService:
 
     def __init__(self, provider: GenerationProvider):

@@ -1,6 +1,6 @@
 from uuid import UUID
 from pydantic import BaseModel, Field
-
+from datetime import datetime
 class QueryRequest(BaseModel):
     tenant_id: UUID
     query: str = Field(min_length=1)
@@ -36,3 +36,19 @@ class UploadResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+
+class JobResponse(BaseModel):
+    job_id: UUID
+    tenant_id : UUID
+    filename : str
+    status : str
+    document_id : UUID | None = None
+    error : str | None = None
+    created_at : datetime
+    started_at : datetime | None = None
+    completed_at : datetime | None = None
+    
+class DocumentResponse(BaseModel):
+    document_id: UUID
+    filename: str
+    created_at: datetime
