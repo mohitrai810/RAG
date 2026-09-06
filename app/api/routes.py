@@ -1,6 +1,6 @@
 from pathlib import Path
 from uuid import UUID
-
+from app.core.metrics import CACHE_REQUESTS
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from app.api.dependencies import (
@@ -144,14 +144,12 @@ def query_rag(
             max_distance=request.max_distance,
         )
 
-        cached_answer = get_cached_answer(
-            cache_key
-        )
-
+        cached_answer = get_cached_answer(cache_key)
         if cached_answer is not None:
-            return QueryResponse(
-                answer=cached_answer
-            )
+            CACHE_REQUESTS.labels(result="hit").inc()
+            return QueryResponse(answer=cached_answer)
+
+        CACHE_REQUESTS.labels(result="miss").inc()
 
         answer = rag_service.ask(
             query=request.query,
