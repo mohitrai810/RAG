@@ -1,89 +1,89 @@
 # Production RAG Backend
 
-A production-oriented, multi-tenant RAG backend built with **FastAPI, PostgreSQL + PGVector, Redis, BGE embeddings, CrossEncoder reranking, OpenRouter, Prometheus, and Docker**.
+A production-oriented, multi-tenant RAG backend built with **FastAPI, PostgreSQL + PGVector, Redis, BGE embeddings, CrossEncoder reranking, OpenRouter, Prometheus, Alembic, and Docker**.
 
-Built from first principles to explore the engineering behind production RAG systems: **retrieval quality, async ingestion, caching, tenant isolation, reliability, observability, and deployment.**
+Built from first principles to explore retrieval quality, async ingestion, caching, tenant isolation, observability, and production RAG architecture.
 
 ## Architecture
 
 ```text
-                                  CLIENT
-                                    │
-                 ┌──────────────────┴──────────────────┐
-                 │                                     │
-                 ▼                                     ▼
-          POST /documents                       POST /query
-                 │                            POST /query/stream
-                 ▼                                     │
-             FastAPI                                    ▼
-                 │                               Redis Cache
-          Create Job (QUEUED)                    │          │
-                 │                              HIT        MISS
-          Save Uploaded File                     │          │
-                 │                               ▼          ▼
-                 ▼                           Response   BGE Embedding
-           Redis Queue                                      │
-                 │                                          ▼
-           202 Accepted                            PGVector Retrieval
-                 │                                  (tenant scoped)
-                 ▼                                          │
-        Background Worker                            ~20 candidates
-                 │                                          │
-         Load → Chunk → Embed                               ▼
-                 │                                   CrossEncoder
-                 ▼                                          │
-       PostgreSQL + PGVector                          ~5 best chunks
-                 │                                          │
-         COMPLETED / FAILED                                 ▼
-                                                    Context Builder
-                                                           │
-                                                           ▼
-                                                    OpenRouter LLM
-                                                           │
-                                                ┌──────────┴──────────┐
-                                                ▼                     ▼
-                                           Response              Streaming
-                                                │                     │
-                                                └──────────┬──────────┘
-                                                           ▼
-                                                      Redis Cache
+                         Client
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+       POST /documents             POST /query
+              │                         │
+              ▼                         ▼
+           FastAPI                 Redis Cache
+              │                    │        │
+              ▼                   HIT      MISS
+      PostgreSQL Job               │        │
+              │                    ▼        ▼
+         Redis Queue            Response  Retrieval
+              │                             │
+              ▼                    ┌────────┴────────┐
+      Background Worker            ▼                 ▼
+              │               BGE + PGVector    PostgreSQL FTS
+       Load → Chunk → Embed       HNSW + Cosine      GIN
+              │                    │                 │
+              ▼                    └────────┬────────┘
+      PostgreSQL + PGVector                 │
+                                           ▼
+                                      CrossEncoder
+                                           │
+                                           ▼
+                                     Context Builder
+                                           │
+                                           ▼
+                                     OpenRouter LLM
+                                      │          │
+                                   Response   Streaming
 ```
+
+> Dense and lexical retrieval are implemented independently. RRF-based hybrid fusion is currently in progress.
 
 ## Highlights
 
-- **Multi-tenant retrieval** — tenant filtering happens inside the PostgreSQL vector query before reranking.
-- **Two-stage retrieval** — BGE + PGVector retrieves candidates, then a CrossEncoder reranks the strongest chunks.
-- **Async ingestion** — uploads create persistent PostgreSQL jobs and are processed through a Redis-backed worker.
-- **Query caching** — exact Redis cache keyed by tenant, normalized query, and retrieval configuration with TTL.
-- **Streaming generation** — `/query/stream` forwards LLM tokens while accumulating the final answer for caching.
-- **LLM reliability** — timeouts, bounded retries, exponential backoff, `429` and `5xx` handling.
-- **Observability** — structured JSON logs, request-ID correlation, and Prometheus metrics.
-- **Document lifecycle** — tenant-aware listing/deletion with chunk, embedding, and cache cleanup.
-- **Containerized services** — FastAPI, worker, PostgreSQL + PGVector, and Redis run through Docker Compose.
+- **Multi-tenant retrieval** with tenant filtering inside PostgreSQL queries
+- **Dense retrieval** using BGE embeddings and PGVector cosine search
+- **HNSW indexing** for scalable approximate nearest-neighbor search
+- **Lexical retrieval** using PostgreSQL Full-Text Search with a GIN index
+- **CrossEncoder reranking** over retrieved candidates
+- **40-query retrieval evaluation suite** with Hit@K, Precision@K, Recall@K, MRR, and latency
+- **Async ingestion** using persistent PostgreSQL jobs and a Redis-backed worker
+- **Redis query caching** with tenant and retrieval configuration-aware keys
+- **Streaming LLM responses** through `/query/stream`
+- **Structured logging and Prometheus metrics** with per-component latency
+- **Alembic migrations** for versioned database schema changes
+- **Dockerized API, worker, PostgreSQL + PGVector, and Redis**
 
-## RAG Pipeline
+## Retrieval
 
 ```text
-Query
-  ↓
-BGE Embedding
-  ↓
-Tenant-Scoped PGVector Search
-  ↓
-~20 Candidates
-  ↓
-CrossEncoder Reranking
-  ↓
-~5 Chunks
-  ↓
-Context Builder
-  ↓
-OpenRouter LLM
-  ↓
-Answer
+Dense Retrieval                    Lexical Retrieval
+      │                                   │
+      ▼                                   ▼
+BGE Embedding                       PostgreSQL FTS
+      │                                   │
+      ▼                                   ▼
+PGVector + HNSW                       GIN Index
+      │                                   │
+      └──────────────┬────────────────────┘
+                     │
+                RRF Fusion
+                 (next)
+                     │
+                     ▼
+                CrossEncoder
+                     │
+                     ▼
+                 Top Chunks
+                     │
+                     ▼
+              OpenRouter LLM
 ```
 
-**Embeddings:** `BAAI/bge-base-en-v1.5` (768 dimensions)  
+**Embedding model:** `BAAI/bge-base-en-v1.5` (768 dimensions)  
 **Reranker:** `cross-encoder/ms-marco-MiniLM-L-6-v2`
 
 ## Async Ingestion
@@ -93,11 +93,9 @@ POST /documents
       ↓
 PostgreSQL Job (QUEUED)
       ↓
-Redis Queue ──────────────→ 202 Accepted
+Redis Queue ─────────→ 202 Accepted
       ↓
 Background Worker
-      ↓
-PROCESSING
       ↓
 Load → Chunk → Embed
       ↓
@@ -108,15 +106,9 @@ COMPLETED / FAILED
 
 PostgreSQL stores durable job state while Redis handles queue coordination.
 
-```http
-GET /jobs/{job_id}
-```
-
 ## Retrieval Evaluation
 
-Retrieval is evaluated using a **40-query evaluation suite** rather than only manually inspecting answers.
-
-Metrics:
+Retrieval changes are evaluated against a **40-query test suite** using:
 
 - Hit@K
 - Precision@K
@@ -124,41 +116,19 @@ Metrics:
 - Mean Reciprocal Rank (MRR)
 - Retrieval latency
 
-This makes retrieval and reranking changes measurable.
+This provides a measurable baseline for comparing retrieval strategies instead of relying only on generated-answer quality.
 
 ## Observability
 
-Every request receives an `X-Request-ID` which is propagated into structured logs.
-
 Prometheus metrics are exposed at:
 
-```http
+```text
 GET /metrics
 ```
 
-Tracked metrics include:
+Metrics include HTTP latency, cache hits/misses, query embedding, vector search, lexical search, retrieval, reranking, LLM, and total RAG latency.
 
-- HTTP request count and latency
-- Redis cache hits/misses
-- retrieval latency
-- reranking latency
-- LLM latency
-- total RAG pipeline latency
-
-Request and tenant IDs stay in logs rather than Prometheus labels to avoid high-cardinality metrics.
-
-### Example Local Latency
-
-```text
-Retrieval      ~421 ms
-Reranking      ~1.20 s
-LLM            ~4.27 s
-RAG Total      ~5.90 s
-
-Exact cache hit: ~5–7 ms
-```
-
-These are local development measurements, not production load-test results.
+Structured logs include request IDs for request-level debugging without introducing high-cardinality Prometheus labels.
 
 ## API
 
@@ -173,11 +143,7 @@ These are local development measurements, not production load-test results.
 | `POST` | `/query` | Cached RAG query |
 | `POST` | `/query/stream` | Streaming RAG query |
 
-Swagger:
-
-```text
-http://localhost:8000/docs
-```
+Swagger is available at `http://localhost:8000/docs`.
 
 ## Tech Stack
 
@@ -185,15 +151,17 @@ http://localhost:8000/docs
 |---|---|
 | API | FastAPI |
 | Database | PostgreSQL + PGVector |
-| ORM | SQLAlchemy |
+| Vector Search | HNSW + Cosine Distance |
+| Lexical Search | PostgreSQL FTS + GIN |
+| ORM / Migrations | SQLAlchemy + Alembic |
 | Queue / Cache | Redis |
 | Embeddings | BGE |
 | Reranking | CrossEncoder |
 | Generation | OpenRouter |
-| Observability | Prometheus + structured JSON logs |
+| Observability | Prometheus + structured logs |
 | Infrastructure | Docker Compose |
 
-## Run with Docker
+## Run Locally
 
 ```bash
 git clone https://github.com/mohitrai810/RAG.git
@@ -206,45 +174,25 @@ Create `.env`:
 OPENROUTER_API_KEY=your_api_key
 ```
 
-Build and start:
+Then:
 
 ```bash
 docker compose build
 docker compose up -d
-```
-
-Check services:
-
-```bash
-docker compose ps
+alembic upgrade head
 ```
 
 Open:
 
 ```text
-Swagger:  http://localhost:8000/docs
-Metrics:  http://localhost:8000/metrics
-```
-
-## Project Structure
-
-```text
-app/
-├── api/          # FastAPI routes
-├── cache/        # Redis query cache
-├── core/         # DB, Redis, logging, metrics, config
-├── models/       # Document, Chunk, Job
-├── ingestion/    # document ingestion
-├── embeddings/   # BGE embeddings
-├── retrieval/    # PGVector retrieval
-├── reranking/    # CrossEncoder
-├── evaluation/   # retrieval evaluation
-├── generation/   # OpenRouter + streaming
-├── rag/          # RAG orchestration
-├── queue/        # Redis ingestion queue
-└── worker/       # background worker
+Swagger: http://localhost:8000/docs
+Metrics: http://localhost:8000/metrics
 ```
 
 ## Status
 
-**Implemented:** retrieval evaluation, multi-tenancy, reranking, async ingestion, Redis caching, streaming, LLM retries/timeouts, document lifecycle, structured logging, Prometheus metrics, and Dockerized services.
+Implemented:
+
+`Multi-tenancy` · `Dense Retrieval` · `HNSW` · `PostgreSQL FTS` · `CrossEncoder Reranking` · `Retrieval Evaluation` · `Async Ingestion` · `Redis Caching` · `Streaming` · `LLM Retries` · `Prometheus` · `Alembic` · `Docker`
+
+Next: **RRF-based hybrid retrieval and evaluation against the dense-only baseline.**
