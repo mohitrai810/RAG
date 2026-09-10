@@ -1,8 +1,8 @@
 # Production RAG Backend
 
-A production-oriented, multi-tenant RAG backend built with **FastAPI, PostgreSQL + PGVector, Redis, BGE embeddings, CrossEncoder reranking, OpenRouter, Prometheus, Alembic, and Docker**.
+A production-oriented, multi-tenant RAG backend built with **FastAPI, PostgreSQL + PGVector, Redis, BGE, CrossEncoder reranking, OpenRouter, Prometheus, Alembic, and Docker**.
 
-Built from first principles to explore retrieval quality, async ingestion, caching, tenant isolation, observability, and production RAG architecture.
+Built from first principles with a focus on retrieval quality, async ingestion, caching, tenant isolation, reliability, and observability.
 
 ## Architecture
 
@@ -23,68 +23,96 @@ Built from first principles to explore retrieval quality, async ingestion, cachi
               │                             │
               ▼                    ┌────────┴────────┐
       Background Worker            ▼                 ▼
-              │               BGE + PGVector    PostgreSQL FTS
-       Load → Chunk → Embed       HNSW + Cosine      GIN
-              │                    │                 │
-              ▼                    └────────┬────────┘
-      PostgreSQL + PGVector                 │
-                                           ▼
+              │               Dense Search      Lexical Search
+       Load → Chunk → Embed     BGE + PGVector    PostgreSQL FTS
+              │                    HNSW              GIN
+              ▼                     │                 │
+      PostgreSQL + PGVector         └────────┬────────┘
+                                             │
                                       CrossEncoder
-                                           │
-                                           ▼
-                                     Context Builder
-                                           │
-                                           ▼
-                                     OpenRouter LLM
-                                      │          │
-                                   Response   Streaming
+                                             │
+                                      Context Builder
+                                             │
+                                      OpenRouter LLM
+                                       │          │
+                                    Response   Streaming
 ```
 
-> Dense and lexical retrieval are implemented independently. RRF-based hybrid fusion is currently in progress.
+> Dense and lexical retrieval are implemented independently. RRF-based hybrid fusion is the next retrieval upgrade.
 
 ## Highlights
 
 - **Multi-tenant retrieval** with tenant filtering inside PostgreSQL queries
 - **Dense retrieval** using BGE embeddings and PGVector cosine search
-- **HNSW indexing** for scalable approximate nearest-neighbor search
+- **HNSW indexing** for scalable approximate nearest-neighbor vector search
 - **Lexical retrieval** using PostgreSQL Full-Text Search with a GIN index
 - **CrossEncoder reranking** over retrieved candidates
-- **40-query retrieval evaluation suite** with Hit@K, Precision@K, Recall@K, MRR, and latency
-- **Async ingestion** using persistent PostgreSQL jobs and a Redis-backed worker
+- **40-query evaluation suite** measuring Hit@K, Precision@K, Recall@K, MRR, and latency
+- **Async ingestion** using durable PostgreSQL jobs and a Redis-backed worker
 - **Redis query caching** with tenant and retrieval configuration-aware keys
-- **Streaming LLM responses** through `/query/stream`
-- **Structured logging and Prometheus metrics** with per-component latency
-- **Alembic migrations** for versioned database schema changes
-- **Dockerized API, worker, PostgreSQL + PGVector, and Redis**
+- **Streaming generation** through `/query/stream`
+- **LLM reliability** with timeouts, bounded retries, and exponential backoff
+- **Observability** with structured logs, request IDs, and Prometheus metrics
+- **Alembic migrations** for versioned schema and index changes
 
 ## Retrieval
 
+### Dense Search
+
 ```text
-Dense Retrieval                    Lexical Retrieval
-      │                                   │
-      ▼                                   ▼
-BGE Embedding                       PostgreSQL FTS
-      │                                   │
-      ▼                                   ▼
-PGVector + HNSW                       GIN Index
-      │                                   │
-      └──────────────┬────────────────────┘
-                     │
-                RRF Fusion
-                 (next)
-                     │
-                     ▼
-                CrossEncoder
-                     │
-                     ▼
-                 Top Chunks
-                     │
-                     ▼
-              OpenRouter LLM
+Query
+  ↓
+BGE Embedding (768d)
+  ↓
+Tenant-Scoped PGVector Search
+  ↓
+HNSW + Cosine Distance
+  ↓
+Candidates
 ```
 
-**Embedding model:** `BAAI/bge-base-en-v1.5` (768 dimensions)  
-**Reranker:** `cross-encoder/ms-marco-MiniLM-L-6-v2`
+Dense retrieval captures semantic similarity between queries and chunks using `BAAI/bge-base-en-v1.5`.
+
+PGVector embeddings are indexed with HNSW:
+
+```sql
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 64)
+```
+
+HNSW provides approximate nearest-neighbor search as the vector corpus grows. For small datasets, PostgreSQL may still choose a sequential scan when its query planner estimates it to be cheaper.
+
+### Lexical Search
+
+```text
+Query
+  ↓
+PostgreSQL Full-Text Search
+  ↓
+GIN Index
+  ↓
+ts_rank
+  ↓
+Candidates
+```
+
+Lexical retrieval complements semantic search by matching actual terms and keywords. Chunk content is indexed using:
+
+```sql
+USING gin (to_tsvector('english', content))
+```
+
+This is useful for exact terminology, identifiers, error codes, and keywords that dense retrieval may not rank strongly.
+
+### Reranking
+
+Retrieved candidates are reranked using:
+
+`cross-encoder/ms-marco-MiniLM-L-6-v2`
+
+The highest-ranked chunks are passed to the context builder and then to the LLM.
+
+**Next:** fuse dense and lexical rankings using Reciprocal Rank Fusion (RRF) before CrossEncoder reranking.
 
 ## Async Ingestion
 
@@ -108,7 +136,7 @@ PostgreSQL stores durable job state while Redis handles queue coordination.
 
 ## Retrieval Evaluation
 
-Retrieval changes are evaluated against a **40-query test suite** using:
+Retrieval changes are measured against a **40-query evaluation suite** using:
 
 - Hit@K
 - Precision@K
@@ -116,15 +144,11 @@ Retrieval changes are evaluated against a **40-query test suite** using:
 - Mean Reciprocal Rank (MRR)
 - Retrieval latency
 
-This provides a measurable baseline for comparing retrieval strategies instead of relying only on generated-answer quality.
+This provides a baseline for comparing retrieval strategies instead of relying only on generated-answer quality.
 
 ## Observability
 
-Prometheus metrics are exposed at:
-
-```text
-GET /metrics
-```
+Prometheus metrics are exposed at `GET /metrics`.
 
 Metrics include HTTP latency, cache hits/misses, query embedding, vector search, lexical search, retrieval, reranking, LLM, and total RAG latency.
 
@@ -143,7 +167,7 @@ Structured logs include request IDs for request-level debugging without introduc
 | `POST` | `/query` | Cached RAG query |
 | `POST` | `/query/stream` | Streaming RAG query |
 
-Swagger is available at `http://localhost:8000/docs`.
+Swagger: `http://localhost:8000/docs`
 
 ## Tech Stack
 
@@ -151,14 +175,13 @@ Swagger is available at `http://localhost:8000/docs`.
 |---|---|
 | API | FastAPI |
 | Database | PostgreSQL + PGVector |
-| Vector Search | HNSW + Cosine Distance |
-| Lexical Search | PostgreSQL FTS + GIN |
-| ORM / Migrations | SQLAlchemy + Alembic |
-| Queue / Cache | Redis |
-| Embeddings | BGE |
+| Vector Retrieval | BGE + HNSW |
+| Lexical Retrieval | PostgreSQL FTS + GIN |
 | Reranking | CrossEncoder |
+| Queue / Cache | Redis |
 | Generation | OpenRouter |
-| Observability | Prometheus + structured logs |
+| ORM / Migrations | SQLAlchemy + Alembic |
+| Observability | Prometheus + structured JSON logs |
 | Infrastructure | Docker Compose |
 
 ## Run Locally
@@ -174,15 +197,13 @@ Create `.env`:
 OPENROUTER_API_KEY=your_api_key
 ```
 
-Then:
+Start the services and apply migrations:
 
 ```bash
 docker compose build
 docker compose up -d
 alembic upgrade head
 ```
-
-Open:
 
 ```text
 Swagger: http://localhost:8000/docs
@@ -191,8 +212,6 @@ Metrics: http://localhost:8000/metrics
 
 ## Status
 
-Implemented:
+**Implemented:** Multi-tenancy · Dense Retrieval · HNSW · PostgreSQL FTS · CrossEncoder Reranking · Retrieval Evaluation · Async Ingestion · Redis Caching · Streaming · LLM Retries · Prometheus · Alembic · Docker
 
-`Multi-tenancy` · `Dense Retrieval` · `HNSW` · `PostgreSQL FTS` · `CrossEncoder Reranking` · `Retrieval Evaluation` · `Async Ingestion` · `Redis Caching` · `Streaming` · `LLM Retries` · `Prometheus` · `Alembic` · `Docker`
-
-Next: **RRF-based hybrid retrieval and evaluation against the dense-only baseline.**
+**Next:** RRF-based hybrid retrieval and evaluation against the dense-only baseline.
