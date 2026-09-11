@@ -73,11 +73,11 @@ The reranker uses an optimized ONNX inference backend for local CPU inference.
 
 Retrieval is evaluated independently from generation using a **90-query evaluation suite** measuring HitRate@5, Precision@5, Recall@5, MRR, and latency.
 
-| Pipeline | HitRate@5 | MRR | Avg. Latency |
+| Pipeline | HitRate@5 | MRR 
 |---|---:|---:|---:|
-| Dense Retrieval | 66.67% | 0.507 | ~160 ms |
-| Hybrid Retrieval | 66.67% | 0.522 | ~237 ms |
-| **Hybrid + CrossEncoder** | **78.89%** | **0.700** | **~839 ms** |
+| Dense Retrieval | 66.67% | 0.507 
+| Hybrid Retrieval | 66.67% | 0.522 
+| **Hybrid + CrossEncoder** | **78.89%** | **0.700**
 
 The final two-stage retrieval pipeline improved **HitRate@5 from 66.67% to 78.89%** and **MRR from 0.507 to 0.700** compared with dense retrieval, while explicitly measuring the latency-quality tradeoff.
 
