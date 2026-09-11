@@ -1,0 +1,652 @@
+[
+  {
+    "id": "q-041",
+    "query": "What should I investigate if remote clients receive `DENIED Redis is running in protected mode` while localhost succeeds.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-001"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is protected-mode is enabled and network binding/authentication are not configured for remote access. Diagnose it by: Inspect `CONFIG GET protected-mode`, `CONFIG GET bind`, `ACL WHOAMI`, and the client source address. The preferred resolution is: Configure an explicit bind address and authentication. Do not disable protected mode without equivalent access controls.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-042",
+    "query": "I'm seeing `CROSSSLOT Keys in request don't hash to the same slot`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-002"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is The keys map to different Redis Cluster hash slots. Diagnose it by: Run `CLUSTER KEYSLOT` for each key and inspect whether hash tags are used. The preferred resolution is: Use a shared hash tag such as `{user:42}:profile` and `{user:42}:sessions` when atomic multi-key operations are required.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-043",
+    "query": "prod broke: BUSY Lua script. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-003"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is A Lua script is executing too long on Redis's main execution path. Diagnose it by: Inspect `SLOWLOG`, script runtime, collection sizes, and recent `EVAL` or `EVALSHA` calls. The preferred resolution is: Bound script work, redesign large scans, and use `SCRIPT KILL` only when operationally safe.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-044",
+    "query": "How should an engineer troubleshoot readonly replica write?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-004"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is The client is connected to a replica, often because topology or failover information is stale. Diagnose it by: Inspect `INFO replication`, the endpoint selected by the client, and failover state. The preferred resolution is: Route writes to the current primary and ensure topology discovery refreshes after failover.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-045",
+    "query": "I'm seeing `OOM command not allowed when used memory > 'maxmemory'`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-005"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is Redis reached `maxmemory` and the configured policy cannot evict a suitable key. Diagnose it by: Inspect `INFO memory`, `CONFIG GET maxmemory`, `CONFIG GET maxmemory-policy`, TTL coverage, and `evicted_keys`. The preferred resolution is: Choose an intentional eviction policy or increase measured capacity; do not blindly remove the memory limit.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-046",
+    "query": "What should I investigate if a client receives responses such as `MOVED 3999 10.0.0.8:6379`.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-006"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is The client contacted a node that does not own the requested hash slot. Diagnose it by: Inspect cluster topology with `CLUSTER SLOTS` or `CLUSTER SHARDS` and confirm the client is cluster-aware. The preferred resolution is: Use a cluster-aware client and refresh slot mappings when topology changes.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-047",
+    "query": "I'm seeing `Bad file format reading the append only file`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-007"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is The append-only file is incomplete or corrupted after an unclean write/storage event. Diagnose it by: Preserve the AOF, inspect startup logs, filesystem health, and validate a copy with `redis-check-aof`. The preferred resolution is: Repair a copy with the appropriate AOF check tool only after backup, then verify dataset integrity before restoring service.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-048",
+    "query": "prod broke: CLIENT output buffer limit. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-008"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is A slow consumer accumulated more queued output than `client-output-buffer-limit` permits. Diagnose it by: Inspect `CLIENT LIST`, output buffer fields, consumer throughput, and configured client buffer limits. The preferred resolution is: Fix slow consumers or message volume first; tune limits only with memory impact understood.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-049",
+    "query": "How should an engineer troubleshoot wrongtype command?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-009"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is The application used a command incompatible with the key's current Redis data type. Diagnose it by: Inspect `TYPE <key>`, the command path, key naming, and writers that can reuse the same key. The preferred resolution is: Separate key namespaces/types and correct the writer or command rather than deleting unknown production data.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-050",
+    "query": "I'm seeing `EVALSHA`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-REDIS-010"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-redis"
+    ],
+    "reference_answer": "The likely cause is The server's script cache no longer contains the SHA, commonly after restart or failover. Diagnose it by: Confirm the target node changed/restarted and inspect application script-loading behavior. The preferred resolution is: On `NOSCRIPT`, safely load or execute the known script body and refresh the cached SHA per node.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-051",
+    "query": "What should I investigate if postgreSQL returns SQLSTATE `23505` / duplicate key value violates unique constraint.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-001"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is Concurrent or repeated writes attempted to create a value protected by a unique constraint. Diagnose it by: Inspect the constraint name, conflicting key, transaction path, and whether the operation should be idempotent. The preferred resolution is: Use the unique constraint as the concurrency boundary and apply `INSERT ... ON CONFLICT` when semantics permit.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-052",
+    "query": "I'm seeing `40001`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-002"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is Serializable transactions formed a dependency pattern that PostgreSQL cannot safely serialize. Diagnose it by: Capture the failing transaction, isolation level, contention pattern, and retry frequency. The preferred resolution is: Retry the complete transaction with bounded backoff and keep transactions short.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-053",
+    "query": "prod broke: Lock not available. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-003"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is The statement requested a lock that conflicts with an existing holder and was configured not to wait or timed out. Diagnose it by: Inspect `pg_locks`, `pg_stat_activity`, blocker PID, lock mode, and transaction age. The preferred resolution is: Resolve the blocker safely and reduce lock duration; schedule lock-heavy operations deliberately.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-054",
+    "query": "How should an engineer troubleshoot statement timeout?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-004"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is Execution exceeded the configured `statement_timeout`. Diagnose it by: Check `SHOW statement_timeout`, `EXPLAIN (ANALYZE, BUFFERS)` in a safe environment, query shape, and wait events. The preferred resolution is: Fix the slow query or contention before raising the timeout; use workload-appropriate limits.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-055",
+    "query": "I'm seeing `remaining connection slots are reserved for non-replication superuser connections`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-005"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is Application pools or leaked sessions exhausted normal PostgreSQL connection capacity. Diagnose it by: Inspect `pg_stat_activity`, pool sizes across instances, idle sessions, and checkout duration. The preferred resolution is: Bound application pools, close sessions reliably, and use a pooler such as PgBouncer when appropriate.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-056",
+    "query": "What should I investigate if writes fail with `cannot execute ... in a read-only transaction` on a standby.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-006"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is The application connected to a read-only replica or a transaction was explicitly marked read only. Diagnose it by: Check `SELECT pg_is_in_recovery()`, transaction settings, endpoint routing, and failover state. The preferred resolution is: Send writes to the writable primary and make role-aware routing resilient to failover.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-057",
+    "query": "I'm seeing `42703`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-007"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is Application code expects a schema change that is absent, incomplete, or deployed in an incompatible order. Diagnose it by: Compare application version with migration version and inspect the actual table definition. The preferred resolution is: Use backward-compatible expand/contract migrations and ensure migrations complete before code requires new columns.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-058",
+    "query": "prod broke: Deadlock detected. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-008"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is Concurrent transactions acquire conflicting resources in inconsistent order. Diagnose it by: Inspect PostgreSQL deadlock logs, statements, lock order, and transaction duration. The preferred resolution is: Acquire resources in a consistent order, shorten transactions, and retry the aborted transaction.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-059",
+    "query": "How should an engineer troubleshoot disk full during wal?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-009"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is WAL cannot be recycled because storage is exhausted, archiving fails, or a replication slot retains old WAL. Diagnose it by: Inspect filesystem capacity, `pg_replication_slots`, `pg_stat_archiver`, and WAL generation rate. The preferred resolution is: Restore safe capacity, repair archiving, and remove only confirmed-unused slots.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-060",
+    "query": "I'm seeing `idle in transaction`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-PG-010"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-postgres"
+    ],
+    "reference_answer": "The likely cause is An open transaction retains an old snapshot and prevents cleanup beyond its horizon. Diagnose it by: Inspect `pg_stat_activity` for old `xact_start`, session owner, and query path. The preferred resolution is: Fix transaction boundaries and consider `idle_in_transaction_session_timeout` as a guardrail.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-061",
+    "query": "What should I investigate if a container terminates with exit code `137`.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-001"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is The process received SIGKILL, commonly from an OOM kill or an explicit kill. Diagnose it by: Inspect `State.OOMKilled`, container memory metrics, host kernel logs, and configured limits. The preferred resolution is: Fix memory growth or batch sizing and set measured limits with headroom; distinguish OOM from manual SIGKILL.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-062",
+    "query": "I'm seeing `126`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-002"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is The command was found but cannot be executed, commonly due to permissions or incompatible execution format. Diagnose it by: Inspect file mode, shebang/interpreter, mount options, and the configured entrypoint. The preferred resolution is: Make the intended executable runnable and ensure its interpreter exists in the image.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-063",
+    "query": "prod broke: Container exits 127. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-003"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is The configured command or executable cannot be found in the container's PATH/filesystem. Diagnose it by: Inspect `ENTRYPOINT`, `CMD`, PATH, image contents, and shell form versus exec form. The preferred resolution is: Install/copy the executable or correct the command path.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-064",
+    "query": "How should an engineer troubleshoot dns service-name failure?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-004"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is The containers do not share the expected user-defined network or the wrong service name is used. Diagnose it by: Inspect `docker network inspect`, Compose configuration, aliases, and DNS lookup inside the container. The preferred resolution is: Attach services to a common network and connect using the Compose service name, not localhost.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-065",
+    "query": "I'm seeing `docker inspect`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-005"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is A bind mount overlays the image directory with the host directory. Diagnose it by: Inspect `docker inspect` mounts and compare the image filesystem without the mount. The preferred resolution is: Mount a narrower path or intentionally populate the host directory.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-066",
+    "query": "What should I investigate if a slow-starting service becomes unhealthy before initialization finishes.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-006"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is The healthcheck failure counter begins too early because startup behavior and `start_period` are mismatched. Diagnose it by: Inspect healthcheck command, interval, timeout, retries, start period, and real initialization time. The preferred resolution is: Use a realistic `start_period` while keeping the health probe strict after startup.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-067",
+    "query": "I'm seeing `no space left on device`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-007"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is Image layers, build cache, stopped artifacts, or Docker's storage filesystem consumed available capacity. Diagnose it by: Inspect `docker system df`, filesystem usage, build cache, and large image layers. The preferred resolution is: Remove confirmed-unused artifacts and improve multi-stage builds; avoid indiscriminate cleanup on shared hosts.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-068",
+    "query": "prod broke: Port binding conflict. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-008"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is Another process or container already owns the requested host port. Diagnose it by: Inspect listening host sockets and running container port mappings. The preferred resolution is: Stop/reconfigure the conflicting owner or publish a different host port.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-069",
+    "query": "How should an engineer troubleshoot permission denied volume?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-009"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is The runtime UID/GID does not have ownership or mode permissions for existing volume files. Diagnose it by: Compare numeric UID/GID inside the container with ownership of mounted files. The preferred resolution is: Initialize ownership deliberately and run the service as the intended non-root user.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-070",
+    "query": "I'm seeing `docker compose config`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-DOCKER-010"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-docker"
+    ],
+    "reference_answer": "The likely cause is Compose-time interpolation and container runtime environment configuration were confused. Diagnose it by: Run `docker compose config`, inspect `.env` location, `env_file`, shell variables, and required-variable syntax. The preferred resolution is: Separate interpolation from runtime configuration and fail startup when required settings are missing.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-071",
+    "query": "What should I investigate if fastAPI returns HTTP `422` before the endpoint body runs.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-001"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is Request data failed Pydantic validation for path, query, header, or body inputs. Diagnose it by: Inspect the response `detail`, generated OpenAPI schema, content type, and actual payload shape. The preferred resolution is: Correct the client payload or schema contract; do not catch the error inside endpoint business logic.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-072",
+    "query": "I'm seeing `async def`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-002"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is Synchronous blocking CPU or I/O work runs directly on the event-loop thread. Diagnose it by: Profile the route and inspect blocking library calls, CPU work, and event-loop lag. The preferred resolution is: Use async-compatible I/O or move blocking work to an appropriate thread/process/worker.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-073",
+    "query": "prod broke: CORS preflight failure. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-003"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is CORS middleware does not allow the requesting origin, method, or headers. Diagnose it by: Inspect browser network details and configured `allow_origins`, `allow_methods`, and `allow_headers`. The preferred resolution is: Configure the smallest required CORS policy and handle credentials/origins consistently.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-074",
+    "query": "How should an engineer troubleshoot 413 upload too large?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-004"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is A reverse proxy or gateway request-body limit rejects the payload upstream. Diagnose it by: Inspect proxy/gateway logs and body-size settings such as Nginx `client_max_body_size`. The preferred resolution is: Set an intentional upload limit across proxy and application and prefer streaming for large files.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-075",
+    "query": "I'm seeing `502 Bad Gateway`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-005"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is The proxy cannot successfully connect to the configured upstream due to address, port, DNS, protocol, or process availability. Diagnose it by: Inspect Nginx error logs, upstream address, container networking, and direct connectivity from the proxy container. The preferred resolution is: Use the correct service DNS/port and add readiness-aware deployment behavior.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-076",
+    "query": "What should I investigate if a reverse proxy returns HTTP `504 Gateway Timeout` during a long generation request.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-006"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is The upstream did not produce the required response within the proxy timeout window. Diagnose it by: Compare upstream processing time with proxy read timeout and inspect whether streaming emits data early. The preferred resolution is: Fix excessive upstream latency and align timeouts; use streaming when appropriate rather than only inflating limits.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-077",
+    "query": "Why would this happen: The same asynchronous job is processed twice after retries.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-007"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is Delivery is at-least-once or the producer retried without an idempotency boundary. Diagnose it by: Inspect job IDs, enqueue attempts, worker acknowledgements, and durable status transitions. The preferred resolution is: Make job processing idempotent with a stable job/idempotency key and atomic state transitions.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-078",
+    "query": "prod broke: Dependency pool exhaustion. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-008"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is The SQLAlchemy pool is exhausted by concurrency, long transactions, or leaked sessions. Diagnose it by: Measure pool checkout/wait time, active sessions, transaction duration, and pool configuration. The preferred resolution is: Close sessions reliably, shorten transactions, and size bounded pools from measured concurrency.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-079",
+    "query": "How should an engineer troubleshoot streaming buffered by proxy?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-009"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is A proxy or intermediary buffers the upstream response. Diagnose it by: Inspect response headers and proxy buffering settings, and test direct versus proxied streaming. The preferred resolution is: Disable buffering for the streaming route where appropriate and ensure chunks are flushed.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-080",
+    "query": "We saw this symptom: Expensive generation continues after the HTTP client has disconnected. What should we check before changing production?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-API-010"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-fastapi"
+    ],
+    "reference_answer": "The likely cause is The application does not propagate or check cancellation/disconnect state during long-running work. Diagnose it by: Inspect request disconnect state, provider cancellation support, and worker lifecycle. The preferred resolution is: Check for disconnects and cancel downstream work when safe to avoid wasted compute.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-081",
+    "query": "What should I investigate if a service fails with `Too many open files` / `EMFILE`.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-001"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is The process reached its file descriptor limit due to high concurrency or leaked descriptors. Diagnose it by: Inspect `/proc/<pid>/limits`, `ulimit -n`, descriptor count, and descriptor types under `/proc/<pid>/fd`. The preferred resolution is: Fix descriptor leaks and set an evidence-based limit appropriate for expected concurrency.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-082",
+    "query": "I'm seeing `Out of memory: Killed process`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-002"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is The kernel OOM killer selected the process under memory pressure. Diagnose it by: Inspect kernel logs, cgroup memory events, RSS trends, swap behavior, and memory limits. The preferred resolution is: Fix memory pressure/leaks and configure realistic cgroup/service limits with headroom.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-083",
+    "query": "prod broke: Address already in use. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-003"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is Another socket already owns the requested address and port, or restart timing conflicts with socket behavior. Diagnose it by: Inspect listeners using `ss -ltnp` and identify the owning process. The preferred resolution is: Stop/reconfigure the conflicting service or choose the correct port; do not blindly kill unrelated processes.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-084",
+    "query": "How should an engineer troubleshoot read-only filesystem?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-004"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is The filesystem or mount is read-only, possibly intentionally or after filesystem errors. Diagnose it by: Inspect `findmnt`, mount options, kernel logs, filesystem health, and container mount configuration. The preferred resolution is: Determine why it became read-only before remounting; repair storage/filesystem issues safely.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-085",
+    "query": "I'm seeing `No space left on device`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-005"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is The filesystem may have exhausted inodes rather than data blocks. Diagnose it by: Compare `df -h` with `df -i` and identify directories containing huge numbers of small files. The preferred resolution is: Remove/rotate confirmed-unneeded files and redesign unbounded small-file creation.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-086",
+    "query": "What should I investigate if applications intermittently fail hostname resolution while IP connectivity works.",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-006"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is Resolver configuration, upstream DNS, search domains, timeouts, or packet loss is causing name-resolution failures. Diagnose it by: Inspect `/etc/resolv.conf`, `resolvectl`, `getent hosts`, DNS latency, and packet loss. The preferred resolution is: Repair resolver/upstream configuration and avoid hard-coding IP addresses as the permanent fix.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-087",
+    "query": "I'm seeing `timedatectl`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-007"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is System clock drift exceeds the tolerance of certificates or signed-token validation. Diagnose it by: Inspect `timedatectl`, NTP synchronization state, chrony/systemd-timesyncd metrics, and UTC timestamps. The preferred resolution is: Restore reliable time synchronization and alert on clock offset.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-088",
+    "query": "prod broke: Permission denied executable. What is the likely cause and first diagnostic step?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-008"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is Execute permission is missing, the filesystem is mounted `noexec`, or directory traversal permission is absent. Diagnose it by: Inspect `ls -l`, `namei -l`, mount options, ownership, and security policy logs. The preferred resolution is: Correct the specific permission or mount policy rather than applying broad `chmod 777`.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q-089",
+    "query": "How should an engineer troubleshoot zombie processes?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-009"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is Child processes exited but their parent has not called wait/waitpid to reap them. Diagnose it by: Inspect `ps` state, PPID relationships, and the parent process's child-handling behavior. The preferred resolution is: Fix the parent to reap children or use a proper init/subreaper in containers.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q-090",
+    "query": "I'm seeing `ps`. Which runbook evidence explains this and what should I inspect?",
+    "relevant_evidence_ids": [
+      "KB-HYBRID-LINUX-010"
+    ],
+    "relevant_document_ids": [
+      "doc-hybrid-linux"
+    ],
+    "reference_answer": "The likely cause is Many tasks may be blocked in uninterruptible I/O sleep, so they contribute to load without consuming CPU. Diagnose it by: Inspect `ps` task states, `vmstat`, `iostat`, storage latency, and kernel stack/wait information. The preferred resolution is: Resolve the underlying I/O bottleneck instead of adding CPU based only on load average.",
+    "category": "hybrid_retrieval_edge_case",
+    "difficulty": "hard"
+  }
+]

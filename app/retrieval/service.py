@@ -106,16 +106,66 @@ class RetrievalService:
 
         return results
 
-    def search(
-        self,
-        query: str,
-        tenant_id: UUID,
-        top_k: int = 3,
-        max_distance: float = 0.4,
+    def reciprocal_rank_fusion(self,
+    dense_results,
+    lexical_results,
+    top_k: int,
+    rrf_k: int = 60,
     ):
-        return self.dense_search(
-            query=query,
-            tenant_id=tenant_id,
-            top_k=top_k,
-            max_distance=max_distance,
+        scores = {}
+        chunks = {}
+
+        for rank, (chunk, _) in enumerate(dense_results,start=1,):
+            chunks[chunk.id] = chunk
+
+            scores[chunk.id] = (
+            scores.get(chunk.id, 0.0)
+            + 1.0 / (rrf_k + rank)
+            )
+
+        for rank, (chunk, _) in enumerate(lexical_results,start=1,):
+            chunks[chunk.id] = chunk
+
+            scores[chunk.id] = (
+            scores.get(chunk.id, 0.0)
+            + 1.0 / (rrf_k + rank)
+            )
+
+        ranked_ids = sorted(
+        scores,
+        key=scores.get,
+        reverse=True,
+        )
+
+        return [
+        (chunks[chunk_id], scores[chunk_id])
+        for chunk_id in ranked_ids[:top_k]
+        ]
+
+
+
+    def search(
+            self,
+    query: str,
+    tenant_id: UUID,
+    top_k: int = 3,
+    max_distance: float = 0.4,
+    ):
+        dense_results = self.dense_search(
+        query=query,
+        tenant_id=tenant_id,
+        top_k=top_k,
+        max_distance=max_distance,
+        )
+
+        lexical_results = self.lexical_search(
+        query=query,
+        tenant_id=tenant_id,
+        top_k=top_k,
+        )
+
+        return self.reciprocal_rank_fusion(
+        dense_results=dense_results,
+        lexical_results=lexical_results,
+        top_k=top_k,
         )
