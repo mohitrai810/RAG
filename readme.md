@@ -69,17 +69,17 @@ Lexical (FTS + GIN) ────┘
 
 The reranker uses an optimized ONNX inference backend for local CPU inference.
 
-## Retrieval Evaluation
+### Retrieval Evaluation
 
-Retrieval is evaluated independently from generation using a **90-query evaluation suite** measuring HitRate@5, Precision@5, Recall@5, MRR, and latency.
+Evaluated on a 90-query retrieval benchmark.
 
-| Pipeline | HitRate@5 | MRR 
-|---|---:|---:|---:|
-| Dense Retrieval | 66.67% | 0.507 
-| Hybrid Retrieval | 66.67% | 0.522 
-| **Hybrid + CrossEncoder** | **78.89%** | **0.700**
+| Pipeline | HitRate@5 | MRR |
+|---|---:|---:|
+| Dense Retrieval | 66.67% | 0.507 |
+| Hybrid Retrieval | 66.67% | 0.522 |
+| **Hybrid + CrossEncoder** | **78.89%** | **0.700** |
 
-The final two-stage retrieval pipeline improved **HitRate@5 from 66.67% to 78.89%** and **MRR from 0.507 to 0.700** compared with dense retrieval, while explicitly measuring the latency-quality tradeoff.
+The two-stage retrieval pipeline boosted HitRate@5 from 66.67% to 78.89% (+12.22%) and MRR from 0.507 to 0.700 over the dense baseline, balancing quality against latency.
 
 ## Production Features
 
