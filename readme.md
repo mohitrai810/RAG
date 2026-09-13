@@ -1,54 +1,12 @@
-# Production RAG Backend
+# Multi-Tenant RAG Backend
 
 A production-oriented, multi-tenant RAG backend built with **FastAPI, PostgreSQL + PGVector, Redis, BGE embeddings, hybrid retrieval, CrossEncoder reranking, OpenRouter, Prometheus, Alembic, and Docker**.
 
 Built from first principles with a focus on retrieval quality, asynchronous ingestion, caching, tenant isolation, reliability, and observability.
 
 ## Architecture
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/512824fc-bfdc-48f8-8b5d-855009d7651d" />
 
-```text
-                              Client
-                                │
-                 ┌──────────────┴──────────────┐
-                 │                             │
-          POST /documents                 POST /query
-                 │                             │
-                 ▼                             ▼
-              FastAPI                      Redis Cache
-                 │                         │         │
-                 │                       HIT        MISS
-                 │                         │         │
-                 ▼                         ▼         ▼
-        PostgreSQL Job                  Response   Retrieval
-           (QUEUED)                                  │
-                 │                         ┌─────────┴─────────┐
-                 ▼                         │                   │
-           Redis Queue                     ▼                   ▼
-                 │                   Dense Search        Lexical Search
-                 ▼                   BGE + PGVector      PostgreSQL FTS
-        Background Worker                  HNSW                GIN
-                 │                         │                   │
-        Load → Chunk → Embed               └─────────┬─────────┘
-                 │                                   │
-                 ▼                                   ▼
-        PostgreSQL + PGVector                       RRF
-                                                     │
-                                               Top 20 Candidates
-                                                     │
-                                                     ▼
-                                              CrossEncoder
-                                                     │
-                                                Top 5 Chunks
-                                                     │
-                                                     ▼
-                                              Context Builder
-                                                     │
-                                                     ▼
-                                               OpenRouter LLM
-                                                │          │
-                                                ▼          ▼
-                                            Response    Streaming
-```
 
 Documents are processed asynchronously so ingestion does not block the latency-sensitive query path.
 
